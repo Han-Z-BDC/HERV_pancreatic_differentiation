@@ -1,0 +1,25 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=80G
+#SBATCH --time=12:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --array=1-15%8
+#SBATCH --job-name=scte_atac
+#SBATCH --output=logs/scte_atac.%A_%a.out
+# scTEATAC on the ATAC BAM: per-cell TE-subfamily accessibility. -CB True is required (default False
+# would pool all cells). Duplicates ignored (default). The ATAC BAM CB tag is the GEX-matched barcode.
+# Usage: sbatch scripts/05_scte_atac.sb
+set -euo pipefail
+source config.sh
+mkdir -p logs
+row=$(awk -F'\t' -v t="${SLURM_ARRAY_TASK_ID}" 'NR>1 && $1==t' configs/samples.tsv)
+sample=$(cut -f2 <<<"$row"); gex_bam=$(cut -f4 <<<"$row"); atac_bam=$(cut -f5 <<<"$row")
+wl="$TE_OUT/whitelists/${sample}.txt"
+export PATH="$TE_ENV/bin:$PATH"
+echo "task ${SLURM_ARRAY_TASK_ID}: ${sample} ($(wc -l < "$wl") cells)"
+out="$TE_OUT/scte_atac"; mkdir -p "$out"; cd "$out"
+scTEATAC -i "$atac_bam" -x "$TE_ANNOT_DIR/scte/hg38.te_atac.idx" -o "${sample}" -CB True \
+  --hdf5 True -p "$SLURM_CPUS_PER_TASK" --min_counts 500

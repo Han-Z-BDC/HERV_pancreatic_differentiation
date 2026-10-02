@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=30G
+#SBATCH --time=04:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --job-name=scte_index
+#SBATCH --output=logs/scte_index.%j.out
+# Usage (from repo root): sbatch scripts/01_build_scte_indexes.sb
+set -euo pipefail
+bash scripts/01_build_scte_indexes.sh

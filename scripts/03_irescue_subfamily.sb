@@ -1,0 +1,26 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=40G
+#SBATCH --time=12:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --array=1-15%8
+#SBATCH --job-name=irescue
+#SBATCH --output=logs/irescue.%A_%a.out
+# IRescue, subfamily level, one sample per array task. Cells: whitelist of kept annotated cells.
+# 10x 3' GEX is forward-stranded (read 2 is sense), so sense and antisense TE reads are separated.
+# UB = Cell Ranger's corrected UMI. Usage (repo root): sbatch scripts/03_irescue_subfamily.sb
+set -euo pipefail
+source config.sh
+mkdir -p logs
+row=$(awk -F'\t' -v t="${SLURM_ARRAY_TASK_ID}" 'NR>1 && $1==t' configs/samples.tsv)
+sample=$(cut -f2 <<<"$row"); gex_bam=$(cut -f4 <<<"$row"); atac_bam=$(cut -f5 <<<"$row")
+wl="$TE_OUT/whitelists/${sample}.txt"
+export PATH="$TE_ENV/bin:$PATH"
+echo "task ${SLURM_ARRAY_TASK_ID}: ${sample} ($(wc -l < "$wl") cells)"
+out="$TE_OUT/irescue_subfamily/${sample}"; mkdir -p "$out"
+irescue -b "$gex_bam" -r "$TE_ANNOT_DIR/scte/hg38_TE.bed" -w "$wl" -c CB -u UB \
+  --strandedness forward --integers -p "$SLURM_CPUS_PER_TASK" -o "$out" -v
+ls -la "$out"
