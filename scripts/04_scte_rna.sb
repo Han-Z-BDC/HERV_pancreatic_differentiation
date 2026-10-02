@@ -20,9 +20,16 @@ sample=$(cut -f2 <<<"$row"); gex_bam=$(cut -f4 <<<"$row"); atac_bam=$(cut -f5 <<
 wl="$TE_OUT/whitelists/${sample}.txt"
 export PATH="$TE_ENV/bin:$PATH"
 echo "task ${SLURM_ARRAY_TASK_ID}: ${sample} ($(wc -l < "$wl") cells)"
+# scTE refuses a BAM whose first reads have no CB tag (Cell Ranger keeps reads without a cell);
+# keep only reads from the whitelisted cells (also much smaller and faster), on scratch, removed at exit
+tmpd="$TE_OUT/tmp_bam/${SLURM_JOB_ID}"; mkdir -p "$tmpd"; trap 'rm -rf "$tmpd"' EXIT
+fbam="$tmpd/${sample}.cells.bam"
+samtools view -@ "$SLURM_CPUS_PER_TASK" -b -D "CB:$wl" -o "$fbam" "$gex_bam"
+samtools index -@ "$SLURM_CPUS_PER_TASK" "$fbam"
+echo "filtered BAM: $(du -h "$fbam" | cut -f1)"
 for mode in exclusive nointron; do
   out="$TE_OUT/scte_rna_${mode}"; mkdir -p "$out"; cd "$out"
-  scTE -i "$gex_bam" -x "$TE_ANNOT_DIR/scte/hg38.${mode}.idx" -o "${sample}" -CB CB -UMI UB \
+  scTE -i "$fbam" -x "$TE_ANNOT_DIR/scte/hg38.${mode}.idx" -o "${sample}" -CB CB -UMI UB \
     --hdf5 True -p "$SLURM_CPUS_PER_TASK" --min_genes 200 --expect-cells 15000
   cd - >/dev/null
 done
