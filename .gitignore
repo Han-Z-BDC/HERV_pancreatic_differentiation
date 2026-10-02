@@ -1,0 +1,10 @@
+logs/
+*.h5ad
+*.h5mu
+*.bam
+*.bai
+*.loom
+*.npz
+*.npy
+__pycache__/
+.ipynb_checkpoints/
