@@ -1,0 +1,12 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --time=03:00:00
+#SBATCH --partition=acompile
+#SBATCH --qos=compile
+#SBATCH --job-name=build_herv_te
+#SBATCH --output=logs/build_herv_te.%j.out
+# acompile has internet access for conda/pip downloads. Usage (from repo root): sbatch envs/build_herv_te_env.sb
+set -euo pipefail
+bash envs/build_herv_te_env.sh
