@@ -21,7 +21,10 @@ gtf="$out/genes.gtf"
 [ -s "$gtf" ] || zcat "$CELLRANGER_REF/genes/genes.gtf.gz" > "$gtf"
 
 for mode in exclusive nointron; do
+  # scTE_build appends ".<mode>.idx" to -o itself, so -o hg38.<mode> gives hg38.<mode>.<mode>.idx;
+  # link the name the counting jobs use (hg38.<mode>.idx)
   "$TE_ENV/bin/scTE_build" -te hg38_TE.bed -gene "$gtf" -m "$mode" -g other -o "hg38.$mode"
+  ln -sfn "hg38.$mode.$mode.idx" "hg38.$mode.idx"
 done
 "$TE_ENV/bin/scTEATAC_build" -g hg38_TE.bed -o hg38.te_atac
 ls -la "$out"
