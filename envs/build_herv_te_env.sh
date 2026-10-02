@@ -13,6 +13,9 @@ export MAMBA_ROOT_PREFIX=/projects/hzhu10@xsede.org/software/micromamba_root
   python=3.11 samtools bedtools pysam pip git
 "$TE_ENV/bin/pip" install --no-cache-dir irescue pychromvar scanpy anndata pandas numpy scipy
 "$TE_ENV/bin/pip" install --no-cache-dir "git+https://github.com/JiekaiLab/scTE.git"
+# scTE opens files with mode 'rU', which Python >= 3.11 rejects ("invalid mode: 'rU'"); 'r' is the
+# Python 3 equivalent (universal newlines are the default).
+sed -i "s/'rU'/'r'/g" "$TE_ENV/bin/scTE_build" "$TE_ENV"/lib/python3.11/site-packages/scTE/annotation.py
 
 echo "--- versions"
 "$TE_ENV/bin/irescue" --version || true
