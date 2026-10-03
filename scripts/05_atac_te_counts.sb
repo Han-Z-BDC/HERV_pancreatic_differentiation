@@ -1,0 +1,49 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=24G
+#SBATCH --time=08:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --array=1-15%8
+#SBATCH --job-name=atac_te
+#SBATCH --output=logs/atac_te.%A_%a.out
+# Per-cell TE-subfamily accessibility from the Cell Ranger ARC fragment files (replaces scTEATAC, which
+# takes the cell barcode from the read name -- not where Cell Ranger puts it -- and collapsed the
+# data into 2 "cells").
+#   1. keep fragments of the whitelisted cells (barcodes are GEX-matched, as in the RNA)
+#   2. each fragment -> its two Tn5 cut sites (start, end-1)
+#   3. bedtools intersect cut sites with the TE BED (4.5 M loci, subfamily = column 4); a cut site
+#      inside nested TEs counts once for each overlapping TE
+#   4. sum per cell x subfamily; also total cut sites per cell (for normalisation)
+# Output: $TE_OUT/atac_te_subfamily/<sample>.counts.tsv.gz  (barcode, subfamily, cut_sites)
+#         $TE_OUT/atac_te_subfamily/<sample>.cell_totals.tsv  (barcode, total_cut_sites, te_cut_sites)
+# Usage (repo root): sbatch scripts/05_atac_te_counts.sb
+set -euo pipefail
+source config.sh
+row=$(awk -F'\t' -v t="${SLURM_ARRAY_TASK_ID}" 'NR>1 && $1==t' configs/samples.tsv)
+sample=$(cut -f2 <<<"$row"); atac_bam=$(cut -f5 <<<"$row")
+frag="$(dirname "$atac_bam")/atac_fragments.tsv.gz"
+wl="$TE_OUT/whitelists/${sample}.txt"
+export PATH="$TE_ENV/bin:$PATH"
+out="$TE_OUT/atac_te_subfamily"; mkdir -p "$out"
+echo "task ${SLURM_ARRAY_TASK_ID}: ${sample} ($(wc -l < "$wl") cells) from $frag"
+
+zcat "$frag" | awk -F'\t' -v OFS='\t' -v wl="$wl" -v tot="$out/${sample}.totals.tmp" '
+  BEGIN { while ((getline b < wl) > 0) keep[b] = 1 }
+  /^#/ { next }
+  ($4 in keep) { print $1, $2, $2 + 1, $4; print $1, $3 - 1, $3, $4; n[$4] += 2 }
+  END { for (b in n) print b, n[b] > tot }' \
+| bedtools intersect -a stdin -b "$TE_ANNOT_DIR/scte/hg38_TE.bed" -wa -wb \
+| awk -F'\t' -v OFS='\t' '{ c[$4 "\t" $8]++ } END { for (k in c) print k, c[k] }' \
+| gzip > "$out/${sample}.counts.tsv.gz"
+
+# totals per cell: all cut sites, and cut sites in any TE (sum over subfamilies)
+zcat "$out/${sample}.counts.tsv.gz" | awk -F'\t' -v OFS='\t' '{ t[$1] += $3 } END { for (b in t) print b, t[b] }' \
+  | sort > "$out/${sample}.te.tmp"
+sort "$out/${sample}.totals.tmp" | join -t $'\t' -a 1 -e 0 -o 0,1.2,2.2 - "$out/${sample}.te.tmp" \
+  | awk -v OFS='\t' 'BEGIN { print "barcode", "total_cut_sites", "te_cut_sites" } { print }' > "$out/${sample}.cell_totals.tsv"
+rm -f "$out/${sample}.totals.tmp" "$out/${sample}.te.tmp"
+echo "cells: $(($(wc -l < "$out/${sample}.cell_totals.tsv") - 1)); rows: $(zcat "$out/${sample}.counts.tsv.gz" | wc -l)"
+awk -F'\t' 'NR > 1 { a += $2; b += $3 } END { printf "cut sites: %d total, %d in TEs (%.1f%%)\n", a, b, 100 * b / a }' "$out/${sample}.cell_totals.tsv"
