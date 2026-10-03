@@ -9,7 +9,7 @@ specific cell types during SC-islet differentiation? Data: the diff-multiome 10x
 
 ## Where things are
 - Repo (Alpine): `/pl/active/ZhuLab_BDC/GitHub/HERV_pancreatic_differentiation` (local git, not pushed).
-  Local mirror on the Mac: `~/HERV_pancreatic_differentiation` (scripts, docs, small results only).
+  Local mirror on the Mac: `~/Documents/Claude/HERV_pancreatic_differentiation` (scripts, docs, small results only).
 - SSH: `ssh -i ~/.ssh/id_rsa hzhu10@xsede.org@login.rc.colorado.edu`
 - `config.sh` holds every path. Shared inputs from the diff-multiome `single-cell-pipeline` are read only;
   outputs go to `TE_OUT=/scratch/alpine/hzhu10@xsede.org/herv_pancreatic_differentiation/out`.
@@ -36,6 +36,11 @@ specific cell types during SC-islet differentiation? Data: the diff-multiome 10x
 | scTE RNA (exclusive + nointron), all 15 | `04_scte_rna.sb` (jobs 33356420, 33356418_10) | `$TE_OUT/scte_rna_{exclusive,nointron}/` |
 | scTE merge, pseudobulk (same 119 units), DESeq2 | `10_merge_scte.py` / `.sb` | `scte_<mode>_merged.h5ad`, `$TE_OUT/deseq2/scte_{exclusive,nointron}/` |
 | exclusive vs nointron read-through flags | `11_compare_scte_modes.py` | `$TE_OUT/qc/scte_mode_*` (local copy `results/scte_modes/`) |
+| scTEATAC, fixed (CB-prefixed read names, name-sorted BAM) | `05b_scte_atac.sb` | `$TE_OUT/scte_atac/<sample>.h5ad` (all 15) |
+| scTEATAC merge + DESeq2 + compare with cut sites | `12_merge_scte_atac.py`, `12_scte_atac_deseq2.sb`, `13_compare_atac_methods.py` | `$TE_OUT/deseq2/scte_atac/`, `$TE_OUT/qc/atac_method_*` |
+| candidate tiers (RNA x read-through x ATAC; genome-derived int-LTR pairs) | `14_candidate_tiers.py` | `$TE_OUT/qc/candidate_tiers_{group,stage}.csv`, `erv_int_ltr_pairs.csv` |
+| ZNF808 / MER11 check | `17_znf808_mer11.py` / `.sb` | `$TE_OUT/qc/znf808_mer11*` |
+| progress report (HTML, all scripts embedded) | `docs/build_report.py` + `docs/report_template.html` | `docs/HERV_progress_report.html` |
 
 DESeq2 design: `~ group` (sample x group pseudobulks as replicates); size factors from library size
 (gene UMIs / all cut sites). Sample blocking is NOT used because early cell types come from a single
@@ -68,8 +73,28 @@ Each IRescue/exclusive call is labelled intergenic / weak / no_intergenic / intr
 - HERVS71-int: robust (intergenic share ~0.5 everywhere).
 
 ## Next steps
-1. (done) scTE exclusive vs nointron; see results above. Use the `verdict` column of
-   `scte_mode_comparison_group.csv` to drop or flag intronic_only calls downstream.
+### Since then (evening 2026-10-03)
+- scTEATAC fixed: it took the barcode from the read name (Cell Ranger: sequencer ID -> 2 "cells") and
+  needs a name-sorted BAM for bamToBed -bedpe. Now agrees with cut sites (group log2FC r = 0.95;
+  one-method calls are near-misses or the 52-cell ductal group); multi-mappers only add L1HS/SVA/Alu.
+  Cut sites stay the main ATAC measure; ATAC support = either method.
+- Calling rule agreed with the user: no single main RNA method. candidate = up in IRescue OR scTE-excl;
+  robust = other method log2FC > 0.5 and not intronic_only in nointron; else discordant + reason
+  (read_through / scte_only (likely antisense) / irescue_only / absent). Group: 242 candidates, 170 robust
+  (44 with ATAC support), 72 discordant.
+- Literature (user pointed out): LTR6A/B / HERVS71 in definitive endoderm is KNOWN -- Wu et al. Cell Rep
+  2022 (LTR6B DE enhancer, FOXA2/GATA4, TET1, ERBB4) and Babarinde et al. Nat Commun 2025 (LTR6A
+  endoderm transcripts). Treat as positive control, not a finding. De Franco et al. Nat Genet 2023:
+  ZNF808 represses MER11A/B/C; KO -> pancreatic agenesis with liver genes. Our check: liver-like cells
+  have ZNF808 1.4-1.6x HIGHER than PP and no MER11 gain at subfamily level (per-copy check pending).
+- Apparently new (keyword search only): HERV15/LTR15 in PP (partly genic), LTR12_/LTR12E/HERV9 in
+  ENP/early endocrine (intergenic, RNA only), LTR22/LTR22B opened in endocrine (ATAC only), MLT1F2-int
+  in ENP, HERVIP10B3/LTR10B and PABL in the liver-like cells. MER110-int ENP = scTE-only (antisense?).
+- RUNNING: IRescue locus mode on all LTR-class copies, job 33369228 (sample 10 done as test, 3 min /
+  29 GB, totals match subfamily run r = 0.998). Then run `16_locus_candidates.py` (pseudobulk loci,
+  host-gene context, copies behind each candidate) and redo ZNF808 per copy.
+
+1. (done) scTE exclusive vs nointron, ATAC methods, tiers -- see above.
 2. RNA vs ATAC concordance per subfamily and group (which induced families are also opened?).
 3. Locus level: IRescue `-l` and/or Stellarscope (with the Telescope HERV annotation), plus strand /
    host-gene checks; name the induced copies. Priority: HERV15-int (PP), MER92-int / MER110-int (late
@@ -86,6 +111,7 @@ Each IRescue/exclusive call is labelled intergenic / weak / no_intergenic / intr
 - `scTE_build -o X` writes `X.<mode>.idx`; links `hg38.<mode>.idx` exist.
 - scTEATAC reads the cell barcode from the read name, not the CB tag -> unusable for Cell Ranger;
   replaced by `05_atac_te_counts.sb` (fragment files).
+- scTEATAC: prefix read names with CB and name-sort (05b); -f 2 -F 0xD0C, all MAPQ kept.
 - `config.sh` does not export: Python jobs need `set -a; source config.sh; set +a`.
 - `amem` jobs need QoS `mem-normal` and a large memory request (small requests are rejected);
   `acompile` needs QoS `compile`.

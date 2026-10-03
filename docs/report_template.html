@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HERV Progress Report</title>
+<style>
+:root{
+  --bg:#fbfaf7; --surface:#ffffff; --surface-2:#f3f1ec; --text:#1d1d1b; --muted:#5f5d57; --border:#e2dfd7;
+  --accent:#1f5f8b; --accent-soft:#e3eef6; --good:#1b7837; --good-soft:#e5f3e6; --warn:#9a6700; --warn-soft:#fbf1dc;
+  --bad:#b0186b; --bad-soft:#fae6f0; --code-bg:#f5f3ee; --shadow:0 1px 2px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141517; --surface:#1c1e21; --surface-2:#24272b; --text:#e9e7e2; --muted:#a7a49c; --border:#33363b;
+    --accent:#7fb6e0; --accent-soft:#1d2c38; --good:#6fcf86; --good-soft:#18291d; --warn:#e3b45a; --warn-soft:#2f2717;
+    --bad:#f08bbf; --bad-soft:#331a27; --code-bg:#191b1e; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141517; --surface:#1c1e21; --surface-2:#24272b; --text:#e9e7e2; --muted:#a7a49c; --border:#33363b;
+  --accent:#7fb6e0; --accent-soft:#1d2c38; --good:#6fcf86; --good-soft:#18291d; --warn:#e3b45a; --warn-soft:#2f2717;
+  --bad:#f08bbf; --bad-soft:#331a27; --code-bg:#191b1e; --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif}
+.layout{display:grid;grid-template-columns:250px minmax(0,1fr);max-width:1280px;margin:0 auto}
+nav.toc{position:sticky;top:0;height:100vh;overflow-y:auto;padding:28px 18px 28px 22px;border-right:1px solid var(--border);font-size:14px}
+nav.toc .brand{font-weight:650;margin-bottom:14px;font-size:15px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 0}
+nav.toc a:hover{color:var(--accent)}
+nav.toc a.sub{padding-left:14px;font-size:13px}
+main{padding:36px 44px 80px;min-width:0}
+h1{font-size:30px;line-height:1.25;margin:0 0 6px;letter-spacing:-.01em}
+h2{font-size:23px;margin:54px 0 12px;padding-top:8px;border-top:1px solid var(--border)}
+h3{font-size:18px;margin:30px 0 8px}
+h4{font-size:15px;margin:18px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+p{margin:8px 0 12px}
+a{color:var(--accent)}
+.meta{color:var(--muted);font-size:14px;margin-bottom:22px}
+code{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:.86em;background:var(--code-bg);padding:1px 5px;border-radius:4px;border:1px solid var(--border);overflow-wrap:anywhere}
+pre{background:var(--code-bg);border:1px solid var(--border);border-radius:8px;padding:14px 16px;overflow-x:auto;font:12.5px/1.5 "SF Mono",Menlo,Consolas,monospace;margin:8px 0 0}
+pre code{background:none;border:0;padding:0;font-size:inherit}
+details{border:1px solid var(--border);border-radius:8px;margin:12px 0;background:var(--surface)}
+details>summary{cursor:pointer;padding:9px 14px;font-size:14px;font-weight:600;color:var(--accent);list-style:none}
+details>summary::before{content:"▸ ";color:var(--muted)}
+details[open]>summary::before{content:"▾ "}
+details>pre{margin:0 10px 10px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin:14px 0;box-shadow:var(--shadow)}
+.tldr{border-left:4px solid var(--accent)}
+.tldr li{margin:6px 0}
+.callout{border-radius:8px;padding:12px 16px;margin:14px 0;font-size:15px}
+.callout.good{background:var(--good-soft);border-left:4px solid var(--good)}
+.callout.warn{background:var(--warn-soft);border-left:4px solid var(--warn)}
+.callout.bad{background:var(--bad-soft);border-left:4px solid var(--bad)}
+.callout.info{background:var(--accent-soft);border-left:4px solid var(--accent)}
+.table-wrap{overflow-x:auto;margin:10px 0 16px;border:1px solid var(--border);border-radius:8px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:7px 11px;text-align:left;vertical-align:top;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);font-weight:600;white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:999px;white-space:nowrap}
+.pill.good{background:var(--good-soft);color:var(--good)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.info{background:var(--accent-soft);color:var(--accent)}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:14px 0}
+.flow .lane{flex:1 1 100%;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.flow .lane-label{flex:0 0 78px;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.flow .box{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:7px 11px;font-size:13px;line-height:1.35}
+.flow .box b{display:block;font-size:12px;color:var(--accent)}
+.flow .arrow{color:var(--muted)}
+.flow .box.done{border-color:var(--good)}
+.flow .box.next{border-style:dashed}
+figure{margin:16px 0;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px}
+figure img{width:100%;height:auto;display:block;border-radius:4px;background:#fff}
+figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
+.steps-meta{display:grid;grid-template-columns:110px minmax(0,1fr);gap:4px 14px;font-size:14.5px;margin:6px 0 10px}
+.steps-meta dt{font-weight:600;color:var(--muted)}
+.steps-meta dd{margin:0}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.theme-toggle{position:fixed;right:16px;top:12px;z-index:5;border:1px solid var(--border);background:var(--surface);color:var(--text);border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer}
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  nav.toc{position:static;height:auto;border-right:0;border-bottom:1px solid var(--border);padding:16px}
+  main{padding:20px 16px 60px}
+  .grid2{grid-template-columns:1fr}
+  .steps-meta{grid-template-columns:1fr}
+  h1{font-size:25px}
+}
+</style>
+</head>
+<body>
+<button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle colour theme">◐ Theme</button>
+<div class="layout">
+<nav class="toc" aria-label="Contents">
+  <div class="brand">HERV / TE report</div>
+  <a href="#tldr">Summary</a>
+  <a href="#question">1. Question &amp; data</a>
+  <a href="#hard">2. Why TEs are hard here</a>
+  <a href="#pipeline">3. Pipeline overview</a>
+  <a href="#methods">4. Methods, step by step</a>
+  <a class="sub" href="#s0">4.0 Env &amp; annotation</a>
+  <a class="sub" href="#s1">4.1 scTE indexes</a>
+  <a class="sub" href="#s2">4.2 Samples &amp; whitelists</a>
+  <a class="sub" href="#s3">4.3 IRescue (RNA)</a>
+  <a class="sub" href="#s4">4.4 scTE (RNA)</a>
+  <a class="sub" href="#s5">4.5 ATAC TE counts</a>
+  <a class="sub" href="#s6">4.6 Merge &amp; first look</a>
+  <a class="sub" href="#s7">4.7 Pseudobulk</a>
+  <a class="sub" href="#s8">4.8 DESeq2</a>
+  <a class="sub" href="#s9">4.9 scTE merge</a>
+  <a class="sub" href="#s10">4.10 Read-through check</a>
+  <a class="sub" href="#s11">4.11 ATAC method comparison</a>
+  <a class="sub" href="#s12">4.12 Candidate tiers</a>
+  <a class="sub" href="#s13">4.13 Locus level</a>
+  <a class="sub" href="#s14">4.14 ZNF808 / MER11</a>
+  <a href="#results">5. Results</a>
+  <a class="sub" href="#r0">5.0 What is already known</a>
+  <a class="sub" href="#r1">5.1 Global TE load</a>
+  <a class="sub" href="#r2">5.2 Stage trajectories</a>
+  <a class="sub" href="#r3">5.3 RNA calls</a>
+  <a class="sub" href="#r4">5.4 ATAC calls</a>
+  <a class="sub" href="#r5">5.5 Read-through filter</a>
+  <a class="sub" href="#r6">5.6 Integrated view</a>
+  <a class="sub" href="#r7">5.7 ATAC: two methods</a>
+  <a class="sub" href="#r8">5.8 Candidate tiers</a>
+  <a class="sub" href="#r9">5.9 ZNF808 / MER11</a>
+  <a href="#caveats">6. Caveats</a>
+  <a href="#next">7. Next steps</a>
+  <a href="#appendix">8. Appendix</a>
+</nav>
+
+<main>
+<h1>ERV / transposable-element activity during SC-islet differentiation</h1>
+<div class="meta">Progress report, version 2 · 3 Oct 2026 (evening) · repo <code>/pl/active/ZhuLab_BDC/GitHub/HERV_pancreatic_differentiation</code> (Alpine, local git) · local mirror <code>~/Documents/Claude/HERV_pancreatic_differentiation</code> · outputs <code>$TE_OUT=/scratch/alpine/hzhu10@xsede.org/herv_pancreatic_differentiation/out</code></div>
+<div class="callout info"><b>New in version 2:</b>
+<ul style="margin:6px 0 0;padding-left:18px">
+<li>scTEATAC fixed and run on all samples as a second ATAC method (4.5b, 5.7).</li>
+<li>Candidates sorted into tiers, with every RNA method on equal footing plus ATAC support from both methods (4.12, 5.8).</li>
+<li>LTRs paired with their internal regions from genome flanks (4.12).</li>
+<li>Literature context: LTR6/HERVS71 in endoderm is published (5.0).</li>
+<li>ZNF808 / MER11 check (4.14, 5.9).</li>
+<li>Per-copy counts started (4.13).</li>
+</ul></div>
+
+<section id="tldr">
+<div class="card tldr">
+<h3 style="margin-top:4px">Summary</h3>
+<ul>
+  <li><b>The pipeline works end to end at subfamily level.</b> All 98,236 kept cells (15 samples, D0–D45) now have per-cell TE-subfamily counts for RNA (IRescue, plus scTE in two modes) and for ATAC (Tn5 cut sites on TEs). These counts feed pseudobulk DESeq2 tests: each cell group vs the rest, and each stage vs the rest.</li>
+  <li><b>Two positive controls reproduce published biology.</b>
+    <ul>
+      <li>HERVH-int / LTR7, the pluripotency ERV, falls about 40× from D0 to D9 and is open in hPSC and DE.</li>
+      <li>HERVS71 and its LTRs LTR6A/B peak at D4 in definitive endoderm, in both RNA and ATAC. This matches Wu et al. 2022 (LTR6B as a FOXA2/GATA4-bound DE enhancer) and Babarinde et al. 2025 (endoderm-specific LTR6A transcripts).</li>
+    </ul></li>
+  <li><b>New, robust programs at later stages.</b> Each is called by IRescue or scTE, confirmed by the other, and survives the read-through filter:
+    <ul>
+      <li><i>Pancreatic progenitors</i>: HERV15-int in PP1/PP2, with its LTR (LTR15) more open in PP. This is genuine, but most of the 20× increase is still genic.</li>
+      <li><i>Endocrine progenitors and early endocrine cells</i>: LTR12_ / LTR12E / HERV9, where 80–90% of reads come from copies outside genes, plus MLT1F2-int. RNA only; their chromatin does not change.</li>
+      <li><i>Off-target liver-like cells</i>: HERVIP10B3 / LTR10B and PABL_A, transcribed and open.</li>
+    </ul></li>
+  <li><b>Endocrine-specific opening without transcription.</b> LTR22 / LTR22B gain accessibility in ENP3 and most early endocrine groups (β, α, δ, EC-β; D22–D45) but are not transcribed. They are candidate enhancers.</li>
+  <li><b>Likely read-through, not ERV transcription:</b> MER92-int and MER110-int in late beta / EC-beta, LTR48B in ENP, LTR19C / LTR25-int in PP2, HERVK-int in OTX2_endo. MER110-int in ENP is "scTE only", probably antisense.</li>
+  <li><b>Both ATAC methods agree</b> (r = 0.95). scTEATAC's multi-mapping reads add signal only to L1HS / SVA / Alu, not to ERV candidates.</li>
+  <li><b>ZNF808/MER11:</b> the liver-like off-target cells do not look like ZNF808 loss at subfamily level. ZNF808 is not lower there and MER11 is not higher. A per-copy check is pending.</li>
+  <li><b>Next:</b> name the induced copies (per-copy counts are running), motifs in LTR12 / LTR22 / LTR15, and the ZNF808 per-copy check.</li>
+</ul>
+</div>
+
+<div class="table-wrap"><table>
+<thead><tr><th>Step</th><th>Status</th><th>Script</th></tr></thead>
+<tbody>
+<tr><td>TE annotation, environment, scTE indexes</td><td><span class="pill good">done</span></td><td><code>envs/*.sh</code>, <code>01_build_scte_indexes.sh</code></td></tr>
+<tr><td>Sample table, cell whitelists</td><td><span class="pill good">done</span></td><td><code>02_make_sample_table.py</code></td></tr>
+<tr><td>RNA subfamily counts, IRescue</td><td><span class="pill good">done</span></td><td><code>03_irescue_subfamily.sb</code></td></tr>
+<tr><td>RNA subfamily counts, scTE exclusive + nointron</td><td><span class="pill good">done</span></td><td><code>04_scte_rna.sb</code></td></tr>
+<tr><td>ATAC TE cut-site counts</td><td><span class="pill good">done</span></td><td><code>05_atac_te_counts.sb</code></td></tr>
+<tr><td>Merge + QC / first look</td><td><span class="pill good">done</span></td><td><code>06_merge_irescue.py</code></td></tr>
+<tr><td>Pseudobulk + DESeq2 (RNA, ATAC, scTE×2)</td><td><span class="pill good">done</span></td><td><code>07</code>, <code>08</code>, <code>09</code>, <code>10</code></td></tr>
+<tr><td>Read-through flags (exclusive vs nointron)</td><td><span class="pill good">done</span></td><td><code>11_compare_scte_modes.py</code></td></tr>
+<tr><td>ATAC, second method: scTEATAC (fixed)</td><td><span class="pill good">done</span></td><td><code>05b_scte_atac.sb</code>, <code>12</code>, <code>13</code></td></tr>
+<tr><td>Candidate tiers: RNA × read-through × ATAC (both methods)</td><td><span class="pill good">done</span></td><td><code>14_candidate_tiers.py</code></td></tr>
+<tr><td>ZNF808 / MER11 check (subfamily level)</td><td><span class="pill good">done</span></td><td><code>17_znf808_mer11.py</code></td></tr>
+<tr><td>Locus level: IRescue <code>-l</code> on all LTR-class copies</td><td><span class="pill warn">running</span></td><td><code>15_irescue_locus.sb</code>, <code>16_locus_candidates.py</code></td></tr>
+<tr><td>TE enrichment in cell-type peaks, motifs in induced LTRs</td><td><span class="pill info">planned</span></td><td>—</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="question">
+<h2>1. Question and data</h2>
+<p><b>Question.</b> Are endogenous retroviruses (ERVs) and other repeats of viral origin switched on at specific stages, or in specific cell types, as human stem cells differentiate into islet cells (SC-islets)? ERVs make up about 8% of the human genome. Most copies are silenced, but some LTRs act as stage-specific promoters and enhancers in early development. HERVH/LTR7 in pluripotent cells is the textbook case. We want to know whether the same thing happens on the way to beta cells, and in which lineages.</p>
+<p><b>Data.</b> The diff-multiome 10x Multiome time course: RNA and ATAC measured in the same nuclei. There are 15 samples over 8 stages (D0 hPSC → D45 SC-islets) from three differentiation batches (HZ015, HZ019/HZ021, XW002). Cell annotation comes from the shared <code>single-cell-pipeline</code>: <code>ATAC_WNN_annotation</code>, using only cells with <code>include_downstream == True</code>, 98,236 cells in 24 groups. This project <b>reads</b> those shared inputs through <code>config.sh</code> and never copies or writes into them.</p>
+
+<div class="grid2">
+<div class="table-wrap"><table>
+<thead><tr><th>Sample</th><th>Stage</th><th class="num">Cells</th></tr></thead>
+<tbody>
+<tr><td>HZ015_D0_rep1</td><td>D0</td><td class="num">5,941</td></tr>
+<tr><td>HZ015_D4_rep1 / rep2</td><td>D4</td><td class="num">7,464 / 6,306</td></tr>
+<tr><td>HZ015_D7_rep2, XW002_D7_rep1</td><td>D7</td><td class="num">5,564 / 6,610</td></tr>
+<tr><td>HZ015_D9_rep2, XW002_D9_rep1</td><td>D9</td><td class="num">7,351 / 5,204</td></tr>
+<tr><td>XW002_D12_rep1 / rep2</td><td>D12</td><td class="num">4,113 / 6,938</td></tr>
+<tr><td>HZ021_D15_rep1 / rep2</td><td>D15</td><td class="num">9,676 / 9,765</td></tr>
+<tr><td>HZ021_D22_rep1 / rep2</td><td>D22</td><td class="num">4,270 / 5,934</td></tr>
+<tr><td>HZ019_D45_rep1 / rep2</td><td>D45</td><td class="num">5,970 / 7,130</td></tr>
+<tr><th>Total</th><th></th><th class="num">98,236</th></tr>
+</tbody></table></div>
+
+<div class="table-wrap"><table>
+<thead><tr><th>Group</th><th class="num">Cells</th><th class="num">Units*</th><th>Stages</th></tr></thead>
+<tbody>
+<tr><td>hPSC</td><td class="num">5,889</td><td class="num">3</td><td>D0,D4,D7</td></tr>
+<tr><td>DE</td><td class="num">13,654</td><td class="num">6</td><td>D0–D9</td></tr>
+<tr><td>GT</td><td class="num">10,557</td><td class="num">7</td><td>D0–D9</td></tr>
+<tr><td>OTX2_endo</td><td class="num">1,105</td><td class="num">5</td><td>D4–D9</td></tr>
+<tr><td>FG</td><td class="num">11,907</td><td class="num">9</td><td>D0–D12</td></tr>
+<tr><td>liver</td><td class="num">1,870</td><td class="num">11</td><td>D7–D45</td></tr>
+<tr><td>PP1 / PP2</td><td class="num">7,882 / 6,960</td><td class="num">5 / 4</td><td>D9–D15</td></tr>
+<tr><td>ENP1 / ENP2 / ENP3</td><td class="num">3,314 / 10,760 / 1,080</td><td class="num">8 / 6 / 4</td><td>D9–D45</td></tr>
+<tr><td>early SC β / α / δ / EC, EC-β</td><td class="num">2,704 / 2,835 / 223 / 2,489, 2,400</td><td class="num">4–6</td><td>D15–D45</td></tr>
+<tr><td>late SC β / α / δ / EC, EC-β</td><td class="num">2,898 / 4,220 / 42 / 3,155, 1,578</td><td class="num">2–4</td><td>D22–D45</td></tr>
+<tr><td>ductal / exocrine / stroma</td><td class="num">52 / 121 / 223</td><td class="num">2 / 3 / 5</td><td>D15–D45</td></tr>
+</tbody></table></div>
+</div>
+<p style="font-size:13.5px;color:var(--muted)">*Units are sample × group pseudobulks with ≥ 20 cells, which are the replicates in DESeq2 (119 in total). Cell numbers are those in the units, so tiny groups lose some cells.</p>
+</section>
+
+<section id="hard">
+<h2>2. Why TE quantification in single-nucleus multiome is tricky</h2>
+<p>Every design choice below exists to deal with one of these five problems.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Problem</th><th>What goes wrong</th><th>How we handle it</th></tr></thead>
+<tbody>
+<tr><td><b>Multi-mapping reads</b></td><td>Young ERVs (HERVK HML-2, young HERVH, L1HS) have thousands of nearly identical copies. Reads land equally well on many of them, so aligners give them low MAPQ. Discarding multi-mappers removes exactly the elements of most interest.</td><td>Count at the <b>subfamily</b> level first, where a read compatible with many copies of one subfamily is still unambiguous. IRescue resolves reads that fit several subfamilies with an EM step.</td></tr>
+<tr><td><b>Intronic read-through</b></td><td>Single-nucleus RNA is full of unspliced pre-mRNA. Most TEs sit in introns, so a transcribed host gene puts reads on its intronic ERVs. A cell type that expresses that gene then looks as if it "induces" the ERV.</td><td>scTE with two indexes: <code>exclusive</code> (intronic TE reads kept) vs <code>nointron</code> (only TE reads outside genes). Calls that vanish in nointron are flagged. Locus-level host-gene checks come next.</td></tr>
+<tr><td><b>3′ chemistry</b></td><td>10x 3′ GEX only captures the 3′ end of polyadenylated transcripts. An ERV transcript is seen only if its polyA site is captured, and we see roughly where it ends, not where it starts.</td><td>We keep strand information (forward-stranded) in IRescue. Locus-level work will look at read position relative to the LTR.</td></tr>
+<tr><td><b>ATAC mappability</b></td><td>Cell Ranger fragments keep only MAPQ ≥ 30 reads. ATAC signal on young, repetitive elements is therefore under-counted and comes mostly from older, more diverged copies.</td><td>Interpret ATAC on young families (LTR5_Hs, LTR7) cautiously; absence of ATAC signal is weak evidence.</td></tr>
+<tr><td><b>Stage = cell type = batch</b></td><td>Early cell types exist in only one sample (hPSC only at D0, DE mostly at D4). Stage and differentiation batch coincide for most stages; only D7 and D9 have two batches.</td><td>DESeq2 uses <code>~ group</code> without a sample term, because blocking on sample would remove the contrasts we care about. P-values are therefore optimistic. Effect size and consistency across modalities matter more than padj.</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="pipeline">
+<h2>3. Pipeline overview</h2>
+<div class="flow">
+  <div class="lane"><span class="lane-label">Inputs</span>
+    <div class="box"><b>RepeatMasker hg38</b>4.5 M TE loci, 1,090 subfamilies</div>
+    <div class="box"><b>Cell Ranger ARC</b>GEX BAM, ATAC fragments</div>
+    <div class="box"><b>Shared annotation</b>98,236 cells, 24 groups</div>
+  </div>
+  <div class="lane"><span class="lane-label">RNA</span>
+    <div class="box done"><b>03 IRescue</b>UMI + EM, stranded</div><span class="arrow">→</span>
+    <div class="box done"><b>06 merge</b>cells × subfamilies</div><span class="arrow">→</span>
+    <div class="box done"><b>07 pseudobulk</b>sample × group</div><span class="arrow">→</span>
+    <div class="box done"><b>08 DESeq2</b>group / stage vs rest</div>
+  </div>
+  <div class="lane"><span class="lane-label">RNA check</span>
+    <div class="box done"><b>04 scTE</b>exclusive + nointron</div><span class="arrow">→</span>
+    <div class="box done"><b>10 merge + DESeq2</b>same units</div><span class="arrow">→</span>
+    <div class="box done"><b>11 compare</b>read-through flags</div>
+  </div>
+  <div class="lane"><span class="lane-label">ATAC</span>
+    <div class="box done"><b>05 cut sites ∩ TEs</b>fragments → Tn5 sites</div><span class="arrow">→</span>
+    <div class="box done"><b>07 pseudobulk</b>sample × group</div><span class="arrow">→</span>
+    <div class="box done"><b>08 DESeq2</b>group / stage vs rest</div>
+  </div>
+  <div class="lane"><span class="lane-label">ATAC check</span>
+    <div class="box done"><b>05b scTEATAC</b>barcode-named, name-sorted BAM</div><span class="arrow">→</span>
+    <div class="box done"><b>12 merge + DESeq2</b>same units</div><span class="arrow">→</span>
+    <div class="box done"><b>13 compare</b>cut sites vs scTEATAC</div>
+  </div>
+  <div class="lane"><span class="lane-label">Integrate</span>
+    <div class="box done"><b>14 tiers</b>RNA × read-through × ATAC</div><span class="arrow">→</span>
+    <div class="box done"><b>17 ZNF808 / MER11</b>KZFP check</div>
+  </div>
+  <div class="lane"><span class="lane-label">Next</span>
+    <div class="box next"><b>15/16 locus level</b>IRescue -l, host genes (running)</div><span class="arrow">→</span>
+    <div class="box next"><b>Peaks &amp; motifs</b>TFs in LTR12 / LTR22 / LTR15</div>
+  </div>
+</div>
+</section>
+
+<section id="methods">
+<h2>4. Methods, step by step</h2>
+<p>Each step lists what it does, why we need it, how it works, and the gotchas we hit. The full script is in the collapsible block under each step, copied verbatim from the repo.</p>
+
+<h3 id="s0">4.0 Environment and repeat annotation</h3>
+<dl class="steps-meta">
+<dt>What</dt><dd>Builds the <code>herv_te</code> conda env (IRescue 1.2.0, scTE, samtools, bedtools, pychromvar, scanpy). Downloads the UCSC RepeatMasker table for hg38.</dd>
+<dt>Why</dt><dd>No TE tools existed on Alpine. RepeatMasker is the standard TE annotation and defines what a "subfamily" is (e.g. <code>HERVH-int</code> = internal region of HERVH, <code>LTR7</code> = its LTR).</dd>
+<dt>How</dt><dd>UCSC <code>rmsk.txt.gz</code> is converted to a BED with subfamily, strand, family and class (<code>rmsk_hg38.bed.gz</code>), plus an LTR-only subset. The env is built on <code>acompile</code>, which has internet access. scTE is patched because it opens files with mode <code>'rU'</code>, which Python 3.11 rejects.</dd>
+<dt>Output</dt><dd><code>/pl/active/ZhuLab_BDC/genome/repeats_hg38/</code>, env at <code>/projects/hzhu10@xsede.org/software/anaconda/envs/herv_te</code></dd>
+</dl>
+<details><summary>envs/get_repeat_annotations.sh</summary><pre><code><!--SCRIPT:envs/get_repeat_annotations.sh--></code></pre></details>
+<details><summary>envs/build_herv_te_env.sh</summary><pre><code><!--SCRIPT:envs/build_herv_te_env.sh--></code></pre></details>
+
+<h3 id="s1">4.1 scTE indexes and the TE BED</h3>
+<dl class="steps-meta">
+<dt>What</dt><dd>Writes the TE BED used by every counting step: 4,516,048 loci in 1,090 subfamilies, limited to the classes LTR, LINE, SINE, DNA, Retroposon and RC. It also builds the scTE genome indexes in two modes.</dd>
+<dt>Why</dt><dd>One shared definition of "TE" keeps IRescue, scTE and ATAC comparable. Simple repeats, satellites and small-RNA genes are not TEs and would add noise. The two scTE modes are what let us separate ERV transcription from intronic read-through later (4.10).</dd>
+<dt>How</dt><dd>scTE splits the genome into bins and records which gene or TE each bin belongs to. It assigns reads to genes first, then to TEs. In <b>exclusive</b> mode, a read on a TE inside a gene <i>exon</i> goes to the gene, but intronic and intergenic TE reads go to the TE. In <b>nointron</b> mode, any read inside a gene body (exon or intron) goes to the gene, so only TE reads outside genes count as TE. Gene models come from the Cell Ranger ARC GRCh38-2020-A GTF, so genes match the main analysis.</dd>
+<dt>Gotcha</dt><dd><code>scTE_build -o X</code> writes <code>X.&lt;mode&gt;.idx</code>, so symlinks <code>hg38.&lt;mode&gt;.idx</code> were added. The scTEATAC index was built but later abandoned (see 4.5).</dd>
+</dl>
+<details><summary>scripts/01_build_scte_indexes.sh</summary><pre><code><!--SCRIPT:scripts/01_build_scte_indexes.sh--></code></pre></details>
+
+<h3 id="s2">4.2 Sample table and cell whitelists</h3>
+<dl class="steps-meta">
+<dt>What</dt><dd>Maps each Cell Ranger run to its analysis name (e.g. <code>HZ180_…_hPSC_rep1</code> → <code>HZ015_D0_rep1</code>). Writes one barcode whitelist per sample with the kept, annotated cells.</dd>
+<dt>Why</dt><dd>Counting only the 98,236 QC-passed cells makes every TE matrix line up with the annotation. It also makes the jobs much faster, because BAMs are filtered to these cells.</dd>
+<dt>How</dt><dd>Reads the rename manifest and the annotation CSV, and keeps <code>include_downstream == True</code>. Barcodes are stored as in the BAM <code>CB</code> tag (<code>AAAC…-1</code>). In the merged objects a cell is named <code>&lt;sample&gt;#&lt;barcode&gt;</code>.</dd>
+<dt>Output</dt><dd><code>configs/samples.tsv</code> (task id = SLURM array index), <code>$TE_OUT/whitelists/&lt;sample&gt;.txt</code></dd>
+</dl>
+<details><summary>scripts/02_make_sample_table.py</summary><pre><code><!--SCRIPT:scripts/02_make_sample_table.py--></code></pre></details>
+
+<h3 id="s3">4.3 RNA: IRescue subfamily counts (main RNA quantification)</h3>
+<dl class="steps-meta">
+<dt>What</dt><dd>Builds a per-cell, per-subfamily UMI count matrix from each GEX BAM.</dd>
+<dt>Why</dt><dd>IRescue is built for 10x data and TEs. It works with UMIs (deduplicated molecules, not reads) and keeps multi-mapping reads. Reads that fit several subfamilies are shared out statistically instead of being thrown away.</dd>
+<dt>How</dt><dd>
+  <ol style="margin:4px 0;padding-left:20px">
+    <li>For every read from a whitelisted cell, collect all its alignments (Cell Ranger keeps secondary alignments of multi-mappers). Record the set of TE subfamilies they overlap on the correct strand.</li>
+    <li>Group reads by cell barcode (<code>CB</code>) and corrected UMI (<code>UB</code>). One UMI = one molecule, so PCR duplicates collapse.</li>
+    <li>A UMI compatible with one subfamily is assigned directly. A UMI compatible with several (an "equivalence class") is shared by <b>expectation–maximisation</b>: start from the unique counts, assign ambiguous UMIs in proportion to each subfamily's current abundance in that cell, re-estimate, and repeat until stable. <code>--integers</code> rounds the result.</li>
+    <li><code>--strandedness forward</code>: in 10x 3′ GEX, read 2 is in the sense of the mRNA, so only reads on the TE's own strand count as that TE. Antisense reads, typically from a host gene running the other way, are not counted.</li>
+  </ol></dd>
+<dt>Output</dt><dd><code>$TE_OUT/irescue_subfamily/&lt;sample&gt;/counts/</code> (MTX)</dd>
+</dl>
+<details><summary>scripts/03_irescue_subfamily.sb</summary><pre><code><!--SCRIPT:scripts/03_irescue_subfamily.sb--></code></pre></details>
+
+<h3 id="s4">4.4 RNA: scTE counts (cross-check and read-through test)</h3>
+<dl class="steps-meta">
+<dt>What</dt><dd>Gene + TE count matrices from scTE, once with the exclusive index and once with the nointron index.</dd>
+<dt>Why</dt><dd>It is an independent algorithm, so it checks IRescue. More importantly, the two indexes give an "intergenic only" version of every subfamily.</dd>
+<dt>How</dt><dd>The BAM is first filtered to whitelisted cells, keeping only reads that have a corrected UMI (<code>samtools view -D CB:whitelist -e 'exists([UB])'</code>). scTE then assigns each read to a gene or TE through the index, counts UMIs per cell, and sums TE loci by subfamily. scTE is <i>not</i> strand-aware for TEs, so it also counts antisense reads. That is one reason its TE counts are higher than IRescue's.</dd>
+<dt>Gotchas</dt><dd>scTE stops on reads without <code>CB</code>/<code>UB</code>, hence the filter. Each worker loads the whole index (~200 GB peak in total), so this runs on <code>amem</code> with 6 workers and 320 GB. On <code>acpu</code> with 60–80 GB it ran out of memory. Run time was 30–85 min per sample; job 33356420, plus 33356418_10 for sample 10.</dd>
+</dl>
+<details><summary>scripts/04_scte_rna.sb</summary><pre><code><!--SCRIPT:scripts/04_scte_rna.sb--></code></pre></details>
+
+<h3 id="s5">4.5 ATAC: TE-subfamily accessibility from fragments</h3>
+<dl class="steps-meta">
+<dt>What</dt><dd>For every cell, counts Tn5 cut sites falling in each TE subfamily, plus the cell's total cut sites.</dd>
+<dt>Why</dt><dd>Chromatin opening of an LTR is the regulatory counterpart of its transcription. It is often the more direct readout of an LTR acting as an enhancer or promoter, and it does not suffer from intronic read-through.</dd>
+<dt>How</dt><dd>Each ATAC fragment has two Tn5 insertion (cut) sites, at its start and at its end − 1. The script keeps fragments from whitelisted cells, turns each into its two cut sites, intersects them with the TE BED (<code>bedtools intersect</code>), and sums per cell × subfamily. A cut site inside nested TEs counts once for each TE. Cell totals are kept for normalisation. Overall, <b>26.9%</b> of all cut sites fall in TEs.</dd>
+<dt>Note</dt><dd>Cell Ranger fragment files hold only reads with MAPQ ≥ 30, so reads that map to several copies are missing here. scTEATAC (4.5b) keeps them, and 4.11 compares the two.</dd>
+</dl>
+<details><summary>scripts/05_atac_te_counts.sb</summary><pre><code><!--SCRIPT:scripts/05_atac_te_counts.sb--></code></pre></details>
+
+<h3 id="s5b">4.5b ATAC, second method: scTEATAC (fixed)</h3>
+<dl class="steps-meta">
+<dt>What</dt><dd>Per-cell TE-subfamily counts from the ATAC BAM using scTE's own ATAC mode. This is an independent, published method that also keeps reads mapping to several copies.</dd>
+<dt>Why it failed first</dt><dd>
+  <ol style="margin:4px 0;padding-left:20px">
+    <li>scTEATAC never reads the <code>CB</code> tag. It runs <code>bamToBed -bedpe | awk -F '[\t:]' '{print $1,$2,$6,$7}'</code>, so the "barcode" is the first <code>:</code>-separated piece of the read name. For Cell Ranger reads (<code>LH00368:19:…</code>, <code>A01535:176:…</code>) that is the <b>sequencer ID</b>, so each sample collapsed into 2 "cells".</li>
+    <li><code>bamToBed -bedpe</code> needs mates next to each other, i.e. a name-sorted BAM. The coordinate-sorted BAM produced thousands of "mate does not occur next to it… skipping" warnings and lost reads.</li>
+  </ol></dd>
+<dt>Fix</dt><dd>
+  <ol style="margin:4px 0;padding-left:20px">
+    <li>Keep whitelisted proper pairs, dropping unmapped, secondary, supplementary and duplicate reads (<code>-f 2 -F 0xD0C</code>). Keep reads of <b>every MAPQ</b>.</li>
+    <li>Put the cell barcode in front of each read name (<code>AAAC…-1:LH00368:…</code>).</li>
+    <li>Name-sort, then run scTEATAC with <code>-CB True</code>.</li>
+  </ol>
+  Tested first on a small region: the left mate always came first and no pairs crossed chromosomes. Result: every whitelisted cell is recovered in all 15 samples and there are 0 mate warnings.</dd>
+<dt>How it counts</dt><dd>Each fragment, from mate 1 start to mate 2 end, adds 1 to every TE copy it overlaps. That is the whole fragment span, not just the Tn5 cut sites. Reads that map to several copies sit on the one copy the aligner picked.</dd>
+<dt>Cost</dt><dd>20–50 min and ~175 GB per sample on <code>amem</code>; each scTE worker loads the whole index.</dd>
+</dl>
+<details><summary>scripts/05b_scte_atac.sb</summary><pre><code><!--SCRIPT:scripts/05b_scte_atac.sb--></code></pre></details>
+
+<h3 id="s6">4.6 Merge IRescue matrices and first look</h3>
+<dl class="steps-meta">
+<dt>What</dt><dd>Combines the 15 IRescue matrices into one AnnData (cells × subfamilies). Adds stage, annotation and per-cell gene UMIs, then writes QC tables and figures.</dd>
+<dt>Why</dt><dd>To check that the counts behave sensibly (the HERVH drop after pluripotency, class composition) before running statistics.</dd>
+<dt>How</dt><dd>Feature columns are aligned across samples. Gene UMIs come from the shared integrated RNA object (<code>total_counts</code>). Expression is shown as TE UMIs per million <i>gene</i> UMIs. This is a normalisation, not a "fraction of the transcriptome", because TE reads and gene reads overlap.</dd>
+<dt>Output</dt><dd><code>irescue_subfamily_merged.h5ad</code>, <code>$TE_OUT/qc/irescue_*</code></dd>
+</dl>
+<details><summary>scripts/06_merge_irescue.py</summary><pre><code><!--SCRIPT:scripts/06_merge_irescue.py--></code></pre></details>
+
+<h3 id="s7">4.7 Pseudobulk (sample × cell group)</h3>
+<dl class="steps-meta">
+<dt>What</dt><dd>Sums counts over all cells of one cell group in one sample, giving one "unit". Units with fewer than 20 cells are dropped, leaving 119 units for each modality.</dd>
+<dt>Why</dt><dd>Single-cell TE counts are very sparse. Testing on single cells treats cells as independent replicates and inflates significance. Pseudobulks summed per sample behave like bulk RNA-seq, which DESeq2 models well.</dd>
+<dt>How</dt><dd>A sparse indicator matrix (units × cells) is multiplied by the count matrix. The unit library size is the sum of gene UMIs (RNA) or of all cut sites (ATAC). It also merges the ATAC per-cell tables into <code>atac_te_subfamily_merged.h5ad</code>.</dd>
+</dl>
+<details><summary>scripts/07_pseudobulk_te.py</summary><pre><code><!--SCRIPT:scripts/07_pseudobulk_te.py--></code></pre></details>
+
+<h3 id="s8">4.8 Differential testing with DESeq2</h3>
+<dl class="steps-meta">
+<dt>What</dt><dd>For each modality, two marker-style tests: each <b>cell group vs the mean of all other groups</b>, and each <b>stage vs the mean of all other stages</b>. For the stage test, units are summed per sample. A call means padj &lt; 0.05 and log2FC &gt; 1. Subfamilies with a mean count below 10 are dropped.</dd>
+<dt>Why DESeq2</dt><dd>It models counts as negative binomial and shares dispersion information across subfamilies, which stabilises estimates with few replicates. It also shrinks noisy fold changes toward zero.</dd>
+<dt>How</dt><dd>
+  The model is <code>~ 0 + group</code>, so each group gets its own coefficient (its mean log expression). The "group g vs rest" contrast uses weight +1 for g and −1/(k−1) for each of the other k−1 groups. This tests g against the average of the others on the log scale, a balanced comparison that is not driven by one big group.<br>
+  <b>Size factors are fixed</b> to each unit's library size (gene UMIs or total cut sites), scaled to a geometric mean of 1. DESeq2's usual median-of-ratios on the TE counts would be dominated by old intronic SINEs and LINEs, which change with nuclear RNA content rather than with sequencing depth.<br>
+  <b>No sample term.</b> hPSC exists only at D0 and DE mostly at D4, so a sample term would absorb those group effects (see §2).
+</dd>
+</dl>
+<details><summary>scripts/08_deseq2_te.R</summary><pre><code><!--SCRIPT:scripts/08_deseq2_te.R--></code></pre></details>
+<details><summary>scripts/09_run_deseq2_te.sh</summary><pre><code><!--SCRIPT:scripts/09_run_deseq2_te.sh--></code></pre></details>
+
+<h3 id="s9">4.9 scTE merge and pseudobulk (same units as IRescue)</h3>
+<dl class="steps-meta">
+<dt>What</dt><dd>Merges scTE outputs for each mode. It separates TE columns from gene columns using the TE BED's subfamily names and pseudobulks into exactly the 119 IRescue units. DESeq2 (4.8) then runs on both modes.</dd>
+<dt>Why</dt><dd>Using identical units and normalisation means any difference between IRescue, exclusive and nointron results comes from the counting, not from the statistics.</dd>
+<dt>How / checks</dt><dd>scTE kept every whitelisted cell except 6 in D7_rep2. TE columns hold <b>50–78%</b> of all scTE counts in exclusive mode but only <b>~10%</b> in nointron mode. This alone shows how much of the TE signal in nuclei comes from introns.</dd>
+<dt>Gotcha</dt><dd><code>config.sh</code> does not export its variables, so Python jobs need <code>set -a; source config.sh; set +a</code>.</dd>
+</dl>
+<details><summary>scripts/10_merge_scte.py</summary><pre><code><!--SCRIPT:scripts/10_merge_scte.py--></code></pre></details>
+<details><summary>scripts/10_merge_scte.sb</summary><pre><code><!--SCRIPT:scripts/10_merge_scte.sb--></code></pre></details>
+
+<h3 id="s10">4.10 Read-through check: exclusive vs nointron</h3>
+<dl class="steps-meta">
+<dt>What</dt><dd>Gives every group-vs-rest or stage-vs-rest call from IRescue or scTE-exclusive a verdict on whether it is supported by copies outside genes.</dd>
+<dt>Logic</dt><dd>If a subfamily is "induced" only because a host gene containing some of its copies is switched on, the extra reads land in introns. They are present in exclusive mode and vanish in nointron mode. If the subfamily's own LTRs drive transcription at copies outside genes, the induction persists in nointron.</dd>
+<dt>Verdicts</dt><dd>
+  <span class="pill good">intergenic</span> also up in nointron (padj &lt; 0.05, log2FC &gt; 1) ·
+  <span class="pill warn">weak</span> nointron log2FC &gt; 0.5 but not called ·
+  <span class="pill info">no_intergenic</span> too few reads outside genes to test ·
+  <span class="pill bad">intronic_only</span> nointron log2FC ≤ 0.5, a read-through suspect</dd>
+<dt>Extra metric</dt><dd><code>frac_ratio</code> = (nointron ÷ exclusive in the called group) ÷ (same ratio in all other groups). Below 1, the group's extra TE reads come mostly from copies inside genes. Above 1, they come mostly from copies outside genes.</dd>
+</dl>
+<details><summary>scripts/11_compare_scte_modes.py</summary><pre><code><!--SCRIPT:scripts/11_compare_scte_modes.py--></code></pre></details>
+
+<h3 id="s11">4.11 ATAC method comparison (cut sites vs scTEATAC)</h3>
+<dl class="steps-meta">
+<dt>What</dt><dd>scTEATAC counts are pseudobulked into the same 119 units, with the same size factors (total cut sites). DESeq2 then runs exactly as for cut sites, and fold changes and calls are compared.</dd>
+<dt>Why</dt><dd>To see whether the missing low-MAPQ reads cost us ERV calls (young, repetitive families), and whether counting fragment spans rather than cut sites changes anything.</dd>
+</dl>
+<details><summary>scripts/12_merge_scte_atac.py</summary><pre><code><!--SCRIPT:scripts/12_merge_scte_atac.py--></code></pre></details>
+<details><summary>scripts/13_compare_atac_methods.py</summary><pre><code><!--SCRIPT:scripts/13_compare_atac_methods.py--></code></pre></details>
+<details><summary>scripts/12_scte_atac_deseq2.sb</summary><pre><code><!--SCRIPT:scripts/12_scte_atac_deseq2.sb--></code></pre></details>
+
+<h3 id="s12">4.12 Candidate tiers (all methods on equal footing)</h3>
+<dl class="steps-meta">
+<dt>Why</dt><dd>Choosing either RNA method as the "main" one and applying a hard cutoff loses candidates. Of the group calls supported by copies outside genes, 27 are lost with IRescue as main and 43 with scTE as main. Most of these are threshold effects, where the other method has log2FC 0.5–1. A few are real disagreements, e.g. MER110-int in ENP, which IRescue misses.</dd>
+<dt>Rule</dt><dd>
+  <span class="pill info">candidate</span> up in IRescue <b>or</b> scTE-exclusive (padj &lt; 0.05, log2FC &gt; 1) →
+  <span class="pill good">robust</span> the other method agrees in direction (log2FC &gt; 0.5) <b>and</b> nointron is not "intronic only" →
+  otherwise <span class="pill bad">discordant</span>, with a reason:
+  <code>read_through</code>, <code>scte_only</code> (IRescue counts only reads on the TE's own strand, scTE ignores strand, so possibly antisense), <code>irescue_only</code> (scTE drops reads in gene exons), or <code>absent_in_irescue</code>.<br>
+  <b>ATAC support</b>: the subfamily itself, <i>or one of its LTRs</i>, is up in the same group by either ATAC method.</dd>
+<dt>LTR pairing</dt><dd>The LTRs of each internal region are taken <b>from the genome</b>: RepeatMasker LTR-class elements within 50 bp of the <code>-int</code> fragments. A subfamily is listed if it makes up ≥ 15% of these flanks (≥ 20 flanks). This recovers the expected pairs: HERVH → LTR7, HERVS71 → LTR6B/6A, HERV15 → LTR15, HERVK → LTR5_Hs/5A/5B, HERVK11 → MER11A/B/C, HERV9 → LTR12/12F, HERVIP10B3 → LTR10B1/B2.</dd>
+</dl>
+<details><summary>scripts/14_candidate_tiers.py</summary><pre><code><!--SCRIPT:scripts/14_candidate_tiers.py--></code></pre></details>
+
+<h3 id="s13">4.13 Locus level (running)</h3>
+<dl class="steps-meta">
+<dt>What</dt><dd>IRescue <code>-l</code>, sense strand only, on every RepeatMasker LTR-class copy (725,763). Each copy has a unique ID <code>&lt;subfamily&gt;|chrom_start_end_strand</code>. Then:
+  <ol style="margin:4px 0;padding-left:20px">
+    <li>pseudobulk into the 119 units;</li>
+    <li>annotate each copy as intergenic, intronic or exonic, with its host gene and whether it lies sense or antisense to it (Cell Ranger GTF);</li>
+    <li>for each candidate, rank copies by their share of the increase and report n50, the number of copies giving 50% of it.</li>
+  </ol></dd>
+<dt>Why</dt><dd>A subfamily call can come from one active copy. Naming the copies shows whether an induction is a single-locus event, many copies, or a host gene. This also keeps solo LTRs (LTR12_, MLT1F2), which the Telescope proviral annotation lacks.</dd>
+<dt>Checks</dt><dd>On sample 10, per-copy totals summed by subfamily match the subfamily run (r = 0.998), about 10% higher because LINE/SINE copies no longer compete for reads. That run took 3 min and 29 GB.</dd>
+</dl>
+<details><summary>scripts/15_irescue_locus.sb</summary><pre><code><!--SCRIPT:scripts/15_irescue_locus.sb--></code></pre></details>
+<details><summary>scripts/16_locus_candidates.py</summary><pre><code><!--SCRIPT:scripts/16_locus_candidates.py--></code></pre></details>
+
+<h3 id="s14">4.14 ZNF808 / MER11 check</h3>
+<dl class="steps-meta">
+<dt>Why</dt><dd>De Franco et al. 2023: loss of the primate-specific KZFP ZNF808 causes pancreatic agenesis. ZNF808 represses MER11A/B/C, and in knockout differentiations MER11 copies gain activity (some at the pancreatic progenitor stage) while progenitors switch on liver genes. Our protocol makes off-target liver-like cells. Do they look like partial ZNF808 failure?</dd>
+<dt>How</dt><dd>ZNF808, TRIM28, SETDB1 and marker genes are read from the shared counts layer, column-wise without loading the 10 GB matrix, and summed into the 119 units. MER11A/B/C and HERVK11-int signal comes from all five TE count tables on the same units. Groups are compared, especially liver vs PP1/PP2/FG.</dd>
+</dl>
+<details><summary>scripts/17_znf808_mer11.py</summary><pre><code><!--SCRIPT:scripts/17_znf808_mer11.py--></code></pre></details>
+</section>
+
+<section id="results">
+<h2>5. What we learned so far</h2>
+
+<h3 id="r0">5.0 What is already known (and what is not)</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Finding in our data</th><th>Published</th><th>Status for us</th></tr></thead>
+<tbody>
+<tr><td>HERVH-int / LTR7 high in hPSC, falling quickly after exit from pluripotency</td><td>Textbook. HERVH also "switches" to different, endoderm-specific transcripts in DE (Babarinde et al., <i>Nat Commun</i> 2025, 16:7670).</td><td><span class="pill info">positive control</span></td></tr>
+<tr><td>HERVS71-int and its LTRs LTR6A/B transcribed and opened in DE / GT / OTX2_endo, peak at D4</td><td><b>Wu et al., <i>Cell Rep</i> 2022</b> (41:111791): LTR6B and related ERVs act as DE enhancers with FOXA2 / GATA4 sites, are unlocked by TET1-mediated demethylation, and drive primate-specific ERBB4 expression. <b>Babarinde et al. 2025</b>: LTR6A-containing non-coding transcripts are endoderm-specific (72–96 h), transient, and not kept in hepatocytes.</td><td><span class="pill info">positive control</span> Our D4 peak and later fall match both papers.</td></tr>
+<tr><td>MER11A/B/C (LTRs of HERVK11) and pancreatic fate</td><td><b>De Franco et al., <i>Nat Genet</i> 2023</b>: ZNF808 represses MER11. Its loss activates MER11 copies during pancreas differentiation, liver genes come on, and the result is pancreatic agenesis.</td><td>Tested in 5.9: no sign of ZNF808 failure in our liver-like cells at subfamily level.</td></tr>
+<tr><td>ERV programs in pancreatic progenitors, endocrine progenitors and endocrine cells (HERV15/LTR15, LTR12/HERV9, LTR22, MLT1F2)</td><td>Nothing found in a Europe PMC keyword search (TE/ERV × pancreas/islet/beta cell × development, cancer excluded). The only developmental hit was the ZNF808 paper. The search was not exhaustive.</td><td><span class="pill good">apparently new</span></td></tr>
+</tbody></table></div>
+
+<h3 id="r1">5.1 Global TE load is flat across stages</h3>
+<p>The median cell has about as many TE UMIs as half its gene UMIs, which is typical for nuclei: most of it is intronic SINE/LINE signal. The TE load and the class mix barely change across the time course. LINEs rise slightly and SINEs fall slightly at D22–D45. <b>There is no global "ERV de-repression" during differentiation</b>, so any signal will be specific subfamilies in specific cells.</p>
+<div class="grid2">
+<div class="table-wrap"><table>
+<thead><tr><th>Stage</th><th class="num">TE UMIs / cell</th><th class="num">Gene UMIs / cell</th><th class="num">TE per 10k gene</th></tr></thead>
+<tbody>
+<tr><td>D0</td><td class="num">3,225</td><td class="num">6,791</td><td class="num">4,748</td></tr>
+<tr><td>D4</td><td class="num">2,104</td><td class="num">4,468</td><td class="num">4,736</td></tr>
+<tr><td>D7</td><td class="num">2,101</td><td class="num">4,188</td><td class="num">4,687</td></tr>
+<tr><td>D9</td><td class="num">2,313</td><td class="num">5,203</td><td class="num">4,279</td></tr>
+<tr><td>D12</td><td class="num">3,730</td><td class="num">8,006</td><td class="num">4,609</td></tr>
+<tr><td>D15</td><td class="num">2,593</td><td class="num">7,108</td><td class="num">3,630</td></tr>
+<tr><td>D22</td><td class="num">2,809</td><td class="num">6,670</td><td class="num">4,251</td></tr>
+<tr><td>D45</td><td class="num">2,872</td><td class="num">6,190</td><td class="num">4,662</td></tr>
+</tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Stage</th><th class="num">SINE %</th><th class="num">LINE %</th><th class="num">LTR %</th><th class="num">DNA %</th></tr></thead>
+<tbody>
+<tr><td>D0</td><td class="num">56.8</td><td class="num">31.0</td><td class="num">6.2</td><td class="num">5.8</td></tr>
+<tr><td>D4</td><td class="num">58.0</td><td class="num">30.0</td><td class="num">5.9</td><td class="num">6.0</td></tr>
+<tr><td>D7</td><td class="num">56.6</td><td class="num">31.6</td><td class="num">4.8</td><td class="num">6.8</td></tr>
+<tr><td>D9</td><td class="num">57.7</td><td class="num">31.1</td><td class="num">4.8</td><td class="num">6.3</td></tr>
+<tr><td>D12</td><td class="num">54.2</td><td class="num">33.0</td><td class="num">5.2</td><td class="num">7.4</td></tr>
+<tr><td>D15</td><td class="num">55.5</td><td class="num">31.8</td><td class="num">5.4</td><td class="num">7.1</td></tr>
+<tr><td>D22</td><td class="num">49.4</td><td class="num">36.3</td><td class="num">6.1</td><td class="num">8.0</td></tr>
+<tr><td>D45</td><td class="num">49.0</td><td class="num">37.1</td><td class="num">5.8</td><td class="num">7.8</td></tr>
+</tbody></table></div>
+</div>
+<figure><img src="<!--IMG:results/qc/irescue_stage_overview.jpg-->" alt="Left: boxplots of TE UMIs per 10k gene UMIs by stage, roughly flat. Right: pseudobulk expression of young elements by stage on a log scale; HERVH-int falls steeply after D0."><figcaption>IRescue overview. Left: per-cell TE load by stage. Right: pseudobulk expression of selected young elements across stages (log scale).</figcaption></figure>
+
+<h3 id="r2">5.2 Stage trajectories of the key subfamilies (IRescue, UMIs per million gene UMIs)</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Subfamily</th><th class="num">D0</th><th class="num">D4</th><th class="num">D7</th><th class="num">D9</th><th class="num">D12</th><th class="num">D15</th><th class="num">D22</th><th class="num">D45</th><th>Reading</th></tr></thead>
+<tbody>
+<tr><td>HERVH-int</td><td class="num"><b>2915</b></td><td class="num">837</td><td class="num">110</td><td class="num">64</td><td class="num">77</td><td class="num">53</td><td class="num">68</td><td class="num">68</td><td>Pluripotency ERV, ~45× drop by D9 (positive control)</td></tr>
+<tr><td>LTR7</td><td class="num"><b>902</b></td><td class="num">233</td><td class="num">57</td><td class="num">39</td><td class="num">48</td><td class="num">35</td><td class="num">40</td><td class="num">41</td><td>HERVH promoter LTR; same pattern</td></tr>
+<tr><td>HERVS71-int</td><td class="num">232</td><td class="num"><b>1124</b></td><td class="num">143</td><td class="num">106</td><td class="num">84</td><td class="num">69</td><td class="num">51</td><td class="num">70</td><td>Peaks at D4 (definitive endoderm)</td></tr>
+<tr><td>HERVK-int</td><td class="num">117</td><td class="num"><b>447</b></td><td class="num">265</td><td class="num">185</td><td class="num">95</td><td class="num">55</td><td class="num">82</td><td class="num">97</td><td>D4–D9 (partly read-through, see 5.5)</td></tr>
+<tr><td>HERV15-int</td><td class="num">19</td><td class="num">2</td><td class="num">6</td><td class="num">21</td><td class="num">83</td><td class="num"><b>94</b></td><td class="num">4</td><td class="num">7</td><td>D12–D15 pancreatic progenitors</td></tr>
+<tr><td>LTR12_</td><td class="num">20</td><td class="num">38</td><td class="num">17</td><td class="num">18</td><td class="num">19</td><td class="num">107</td><td class="num"><b>131</b></td><td class="num">65</td><td>Rises D15–D22 (endocrine induction)</td></tr>
+<tr><td>MER92-int</td><td class="num">12</td><td class="num">18</td><td class="num">24</td><td class="num">24</td><td class="num">31</td><td class="num">23</td><td class="num">54</td><td class="num"><b>62</b></td><td>Late stages, but read-through (5.5)</td></tr>
+<tr><td>LTR5_Hs</td><td class="num">46</td><td class="num">63</td><td class="num">43</td><td class="num">34</td><td class="num">36</td><td class="num">36</td><td class="num">47</td><td class="num">44</td><td>HERVK HML-2 LTR: flat</td></tr>
+<tr><td>L1HS</td><td class="num">436</td><td class="num">316</td><td class="num">365</td><td class="num">447</td><td class="num">406</td><td class="num">295</td><td class="num">335</td><td class="num">376</td><td>Youngest L1: flat</td></tr>
+<tr><td>SVA_F</td><td class="num">63</td><td class="num">58</td><td class="num">105</td><td class="num">91</td><td class="num">106</td><td class="num">75</td><td class="num">92</td><td class="num">92</td><td>Mild rise after D4</td></tr>
+</tbody></table></div>
+
+<figure><img src="<!--IMG:results/qc/irescue_ERV_heatmap_by_group.jpg-->" alt="Heatmap of z-scored expression of the 60 most variable ERV/LTR subfamilies across 24 cell groups, ordered by the group where each peaks."><figcaption>The 60 most variable expressed ERV/LTR subfamilies across cell groups (IRescue pseudobulk, z-score of log2 CPM). Rows are sorted by the group in which each peaks. Note that this figure was made <i>before</i> the read-through filter.</figcaption></figure>
+
+<h3 id="r3">5.3 RNA: subfamilies up in a cell group vs the rest (IRescue)</h3>
+<p>There are 214 group calls, 185 of them LTR/ERV. The table shows ERV calls with baseMean &gt; 20, as log2FC vs the mean of the other groups. Colour gives the read-through verdict from 5.5: <span class="pill good">intergenic</span> <span class="pill warn">weak</span> <span class="pill bad">intronic only</span>.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Group</th><th>Up ERV/LTR subfamilies (log2FC, IRescue)</th></tr></thead>
+<tbody>
+<tr><td>hPSC</td><td><span class="pill good">HERVH-int 3.7</span> <span class="pill good">LTR7 3.0</span> <span class="pill warn">HERV4_I-int 2.5</span> <span class="pill good">HERVS71-int 2.3</span> <span class="pill good">HERVK11-int 2.2</span> <span class="pill good">PRIMA4-int 1.4</span> <span class="pill bad">HERVE-int 1.4</span> <span class="pill warn">HERVK-int 1.3</span> <span class="pill good">LTR6B 1.3</span> <span class="pill good">MER51B 1.1</span></td></tr>
+<tr><td>DE</td><td><span class="pill good">HERVH-int 3.2</span> <span class="pill good">HERVS71-int 2.6</span> <span class="pill good">LTR7 2.3</span> <span class="pill good">HERVK11-int 2.2</span> <span class="pill good">HERV4_I-int 1.9</span> <span class="pill good">LTR6B 1.7</span> <span class="pill good">HERVI-int 1.6</span> <span class="pill good">PRIMA4-int 1.5</span> <span class="pill good">HERVE-int 1.5</span> <span class="pill warn">HERVK-int 1.5</span></td></tr>
+<tr><td>GT</td><td><span class="pill good">HERVH-int 2.8</span> <span class="pill good">HERVS71-int 2.5</span> <span class="pill good">LTR7 1.8</span> <span class="pill good">HERVK11-int 1.3</span> <span class="pill good">HERVI-int 1.3</span> <span class="pill warn">HERVK-int 1.2</span></td></tr>
+<tr><td>FG</td><td><span class="pill good">HERVH-int 2.5</span> <span class="pill good">HERVS71-int 2.1</span> <span class="pill good">LTR7 1.7</span> <span class="pill warn">HERV15-int 1.5</span> <span class="pill good">HERVI-int 1.4</span> <span class="pill good">HERVK11-int 1.2</span></td></tr>
+<tr><td>OTX2_endo</td><td><span class="pill bad">HERVK-int 2.2</span> <span class="pill good">HERVS71-int 1.9</span> <span class="pill warn">HERVI-int 1.7</span> <span class="pill good">HERVK11-int 1.5</span></td></tr>
+<tr><td>PP1</td><td><span class="pill good">HERV15-int 3.4</span> <span class="pill warn">LTR25-int 1.8</span> <span class="pill good">HERVIP10B3-int 1.5</span> <span class="pill good">HERVI-int 1.4</span></td></tr>
+<tr><td>PP2</td><td><span class="pill good">HERV15-int 4.5</span>* <span class="pill bad">LTR25-int 2.0</span> <span class="pill warn">HERVIP10B3-int 1.3</span></td></tr>
+<tr><td>ENP1</td><td><span class="pill good">LTR12E 1.6</span> <span class="pill good">MLT1F2-int 1.3</span> <span class="pill warn">HERV3-int 1.2</span> <span class="pill bad">LTR48B 1.1</span></td></tr>
+<tr><td>ENP2</td><td><span class="pill good">LTR12_ 1.6</span> <span class="pill good">LTR12E 1.4</span> <span class="pill bad">LTR48B 1.4</span> <span class="pill good">HERVIP10F-int 1.3</span> <span class="pill good">MLT1F2-int 1.1</span></td></tr>
+<tr><td>ENP3</td><td><span class="pill good">LTR12E 1.3</span> <span class="pill good">MLT1F2-int 1.1</span></td></tr>
+<tr><td>early endocrine</td><td>EC-β: <span class="pill good">LTR12_ 2.6</span> <span class="pill good">HERV9-int 1.8</span> <span class="pill bad">MER92-int 1.5</span> <span class="pill good">HERV9NC-int 1.3</span> <span class="pill bad">MER110-int 1.3</span> · δ: <span class="pill good">LTR12_ 2.0</span> · EC: <span class="pill good">LTR12_ 1.6</span> · α: <span class="pill good">LTR12_ 1.4</span> · β: <span class="pill good">LTR12_ 1.1</span></td></tr>
+<tr><td>late endocrine</td><td>EC-β: <span class="pill bad">MER92-int 1.9</span> <span class="pill bad">MER110-int 1.4</span> · β: <span class="pill bad">MER92-int 1.3</span> <span class="pill bad">MER110-int 1.1</span> · EC: <span class="pill good">HERVK11-int 1.6</span> <span class="pill bad">LTR2C 1.1</span></td></tr>
+<tr><td>liver</td><td><span class="pill good">HERVIP10B3-int 2.3</span> <span class="pill good">HERVI-int 1.8</span> <span class="pill good">PABL_A-int 1.7</span> <span class="pill good">LTR10B2 1.6</span> <span class="pill bad">LTR21A 1.4</span> <span class="pill warn">PABL_A 1.2</span> <span class="pill bad">Harlequin-int 1.1</span></td></tr>
+<tr><td>stroma / exocrine</td><td><span class="pill good">HERVIP10B3-int 1.9</span> <span class="pill bad">LTR21A 1.4</span> <span class="pill good">LTR10B2 1.3</span> / <span class="pill warn">LTR25-int 1.4</span> <span class="pill good">MamGypLTR1b 1.2</span></td></tr>
+</tbody></table></div>
+<p style="font-size:13.5px;color:var(--muted)">*HERV15-int in PP2 passes the formal "intergenic" test, but its fold change drops from 4.5 to 1.7 and only 9% of its PP2 reads come from copies outside genes. See 5.5.</p>
+<p><b>Stage-level calls (RNA)</b> say the same thing: D0 is HERVH / LTR7 / HERV4_I; D4 is HERVS71 / HERVK11 / LTR1C1 / LTR6B; D12–D15 is HERV15 / LTR19C / LTR25-int; D15–D22 is LTR12_; D22–D45 is MER92 / MER110.</p>
+
+<h3 id="r4">5.4 ATAC: subfamilies more accessible in a group vs the rest</h3>
+<p>There are 462 group calls, 394 of them LTR. ATAC is free of read-through, but it under-counts young multi-copy families (§2). Note that groups with few cells or unusual chromatin (ductal with 52 cells, liver, OTX2_endo, stroma) have many calls. Part of that is probably global differences in TE accessibility and data quality, not specific LTR activation.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Group</th><th>Top accessible ERV/LTR subfamilies (log2FC)</th></tr></thead>
+<tbody>
+<tr><td>hPSC</td><td>LTR7 2.0, LTR9C 1.7, LTR1F 1.5, MER4D0 1.4, LTR9B 1.4, MER48 1.3, LTR7Y 1.3 …</td></tr>
+<tr><td>DE</td><td>LTR6B 2.1, LTR7 1.9, LTR6A 1.9, LTR7Y 1.8, HERV1_LTRa 1.7, MER83C 1.6, LTR3A 1.6 …</td></tr>
+<tr><td>GT</td><td>LTR6B 1.9, LTR6A 1.7, LTR10D 1.7, LTR7 1.7, LTR10B 1.7, LTR21A 1.5 …</td></tr>
+<tr><td>OTX2_endo</td><td>LTR6B 3.2, LTR6A 2.4, LTR22B2 2.3, MER4E 2.2, LTR5_Hs 2.2 … (56 calls)</td></tr>
+<tr><td>FG</td><td>LTR6B 1.3, LTR10D 1.2, LTR6A 1.1, LTR7 1.1 …</td></tr>
+<tr><td>PP1</td><td>LTR10D 2.1, MER61F 1.9, LTR10B 1.8, LTR10C 1.6, LTR19C 1.6, LTR35A 1.5, <b>LTR15 1.4</b> …</td></tr>
+<tr><td>PP2</td><td>MER61F 2.5, <b>LTR15 2.2</b>, MER83B 2.0, LTR10D 1.8, LTR10B 1.8, LTR19C 1.6 …</td></tr>
+<tr><td>Endocrine (early β, α, δ, EC-β; ENP3)</td><td><b>LTR22 1.1–1.7, LTR22B 1.0–1.3</b>, LTR18A (late β 1.7), HERVK11D-int (late α / δ)</td></tr>
+<tr><td>liver / stroma</td><td>LTR19A, MER4E, LTR10D/E, LTR22 family, LTR5_Hs … (78 / 29 calls)</td></tr>
+<tr><td>ductal (52 cells)</td><td>LTR10F, LTR15, MER11D, LTR10A/C … (37 calls; too small to trust)</td></tr>
+</tbody></table></div>
+
+<h3 id="r5">5.5 The read-through filter changes the picture (today's result)</h3>
+<p>Only about 21% of LTR-class TE reads come from copies outside genes (nointron ÷ exclusive). For SINEs and DNA transposons it is about 10%. Fold changes agree well between IRescue and scTE-exclusive (r = 0.82), so the two counting methods agree. They agree much less between exclusive and nointron (r = 0.45), which is the read-through effect. Of 242 LTR calls from IRescue or exclusive: <b>129 intergenic</b>, 45 weak, 29 too few reads outside genes to test, <b>39 intronic only</b>.</p>
+<figure><img src="<!--IMG:results/scte_modes/scte_mode_lfc_scatter.png-->" alt="Two scatter plots of group-vs-rest log2 fold changes for ERV/LTR subfamilies. Left: IRescue vs scTE exclusive, tightly correlated. Right: scTE exclusive vs nointron, more scattered; intronic-only calls (magenta) sit near zero on the nointron axis."><figcaption>Group-vs-rest log2FC for ERV/LTR subfamilies (baseMean &gt; 20). Left: the two counting methods agree. Right: removing reads inside genes. Green calls survive; magenta calls drop to about zero and are read-through suspects.</figcaption></figure>
+
+<div class="grid2">
+<div class="callout good"><b>Robust: supported by copies outside genes</b>
+<ul style="margin:6px 0 0;padding-left:18px">
+<li>HERVH-int, LTR7/7Y, HERVS71-int, HERVK11-int, LTR6B in hPSC → DE → GT → FG → OTX2_endo</li>
+<li>LTR12_ / LTR12E / HERV9(NC)-int in ENP1–3 and early endocrine. Their share of reads from outside genes <i>rises</i> to 0.8–0.9 in these groups (frac_ratio 1.2–1.7).</li>
+<li>MLT1F2-int in ENP1–3 (MER110-int there is up in scTE and nointron but not in IRescue, which counts only the TE's own strand, so it is probably antisense; see 5.8)</li>
+<li>LTR60B in early β / EC-β</li>
+<li>liver: HERVIP10B3, HERVI, PABL_A/B, LTR10B1/B2/E</li>
+</ul></div>
+<div class="callout bad"><b>Read-through suspects: gone in nointron</b>
+<ul style="margin:6px 0 0;padding-left:18px">
+<li>MER92-int (late β, late/early EC-β, D22/D45): nointron log2FC −0.9 to −0.1; only 3–7% of reads come from outside genes in those groups</li>
+<li>MER110-int in late β / EC-β (its ENP signal is real)</li>
+<li>LTR48B (ENP1/2, D15), LTR19C and LTR25-int (PP2, D12/D15)</li>
+<li>HERVK-int in OTX2_endo; HERVE-int in hPSC; HERV4_I-int at D0</li>
+<li>LTR21A, Harlequin-int, LTR19C in liver / stroma</li>
+</ul></div>
+</div>
+
+<div class="callout warn"><b>HERV15-int in PP1/PP2: mixed, top locus-level candidate.</b> It is still significantly up in nointron (log2FC 1.5 in PP1, 1.7 in PP2, padj &lt; 0.05). That is far below IRescue's 3.4 / 4.5. In PP2 only 9% of its reads come from copies outside genes, vs 34% elsewhere (frac_ratio 0.26). The PP increase therefore has a real component outside genes plus a larger contribution from copies inside genes, probably one or a few host genes active in pancreatic progenitors. Supporting the real component: <b>LTR15</b>, HERV15's LTR (confirmed from genome flanks, 4.12), is more accessible in PP2 (log2FC 2.2 cut sites / 1.9 scTEATAC) and PP1 (1.4 / 1.2).</div>
+
+<details><summary>Full table of ERV/LTR group calls that did not pass as "intergenic" (baseMean &gt; 20)</summary>
+<div class="table-wrap" style="margin:0 10px 10px"><table>
+<thead><tr><th>Subfamily</th><th>Group</th><th class="num">LFC IRescue</th><th class="num">LFC excl.</th><th class="num">LFC nointron</th><th class="num">frac overall</th><th class="num">frac group</th><th class="num">ratio</th><th>Verdict</th></tr></thead>
+<tbody>
+<!--VERDICT_ROWS-->
+</tbody></table></div>
+</details>
+
+<h3 id="r6">5.6 Integrated working view (RNA × read-through × ATAC)</h3>
+<p>This summarises the systematic tier table (5.8). LTR ↔ internal-region pairings are now taken from genome flanks (4.12).</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Program</th><th>Where</th><th>RNA</th><th>Outside genes?</th><th>ATAC</th><th>Current interpretation</th></tr></thead>
+<tbody>
+<tr><td>HERVH / LTR7</td><td>hPSC → FG</td><td>strong, falls ~45× by D9</td><td><span class="pill good">yes</span></td><td>LTR7/7Y open in hPSC, DE, GT, FG</td><td>Known pluripotency ERV, switched off during endoderm exit. Positive control.</td></tr>
+<tr><td>HERVS71 / LTR6A–B</td><td>DE, GT, OTX2_endo (peak D4)</td><td>HERVS71-int up 1.9–2.6</td><td><span class="pill good">yes</span> (~50% from outside genes)</td><td>LTR6B / 6A among the strongest DE / GT / OTX2 calls (both ATAC methods)</td><td><b>Known</b> (Wu 2022, Babarinde 2025): definitive-endoderm ERV enhancers. Second positive control.</td></tr>
+<tr><td>HERVK11 (MER11A/B/C)</td><td>hPSC → OTX2, late SC_EC</td><td>up 1.2–2.2</td><td><span class="pill good">yes</span></td><td>MER11C open in hPSC (log2FC ~1.0)</td><td>Early program, highest in hPSC. Relevant to ZNF808 (5.9). The late SC_EC call needs a per-copy look.</td></tr>
+<tr><td>HERV15 / LTR15</td><td>PP1, PP2 (D12–D15)</td><td>up 3.4–4.5</td><td><span class="pill warn">partly</span> (robust tier, but mostly genic)</td><td>LTR15 open in PP1/PP2 (both methods)</td><td><b>Top new candidate</b>, partly real. Per-copy analysis will separate the real copies from the host gene.</td></tr>
+<tr><td>LTR12_ / LTR12E / HERV9</td><td>ENP, early endocrine (D15–D22)</td><td>up 1.1–2.6</td><td><span class="pill good">yes</span> (0.8–0.9)</td><td>no change (log2FC −0.4 to +0.2)</td><td><b>New</b>: strong endocrine-progenitor ERV transcription from copies outside genes. LTR12 elements are known NF-Y-driven promoters. With no ATAC change, transcription probably runs from copies that are open in all cells.</td></tr>
+<tr><td>MER110-int</td><td>ENP1/2 (scTE), late β / EC-β (IRescue)</td><td>ENP: scTE 1.0–1.2, IRescue flat; late β: IRescue 1.1–1.4</td><td>ENP <span class="pill good">yes</span>; late <span class="pill bad">no</span></td><td>none</td><td>The ENP signal is probably antisense transcription through MER110 copies outside genes. The late-β signal is read-through.</td></tr>
+<tr><td>MER92</td><td>late β / EC-β (D22–D45)</td><td>up 1.3–1.9</td><td><span class="pill bad">no</span></td><td>none</td><td>Most likely intronic copies in beta-cell genes. Name the host genes before discarding.</td></tr>
+<tr><td>LTR22 / LTR22B</td><td>endocrine groups</td><td>—</td><td>—</td><td>up 1.0–1.7</td><td>Accessibility without transcription: candidate enhancers. A target for motif analysis.</td></tr>
+<tr><td>HERVIP10 / LTR10, PABL</td><td>liver, stroma, (PP)</td><td>up 1.3–2.3</td><td><span class="pill good">yes</span></td><td>LTR10B/D/E open in liver, PP, GT, stroma</td><td>A liver-like / non-pancreatic program. LTR10 elements are known AP-1-bound enhancers in other systems.</td></tr>
+</tbody></table></div>
+
+<h3 id="r7">5.7 ATAC: cut sites and scTEATAC agree</h3>
+<div class="grid2">
+<figure><img src="<!--IMG:results/atac_methods/atac_method_scatter.png-->" alt="Scatter of group-vs-rest log2 fold changes for ERV/LTR subfamilies, cut sites vs scTEATAC; points lie tightly on the diagonal; one-method calls sit just below log2FC 1 in the other method."><figcaption>Group-vs-rest log2FC, ERV/LTR subfamilies (baseMean &gt; 20). Calls made by one method only (blue, red) sit just under the cutoff in the other.</figcaption></figure>
+<div>
+<ul>
+<li><b>Fold changes:</b> r = 0.95 across groups and r = 0.96 across stages. Per-subfamily totals correlate at r = 0.99 (log scale).</li>
+<li><b>Calls:</b> 462 by cut sites, 383 by scTEATAC, 337 by both. Almost every call made by one method only is a near-miss: log2FC 0.8–1.0 and significant in the other method. The rest come from the 52-cell <b>ductal</b> group (22 LTR calls by cut sites only).</li>
+<li><b>Low-MAPQ reads</b> raise counts only for young non-ERV families: L1HS 2.5×, SVA_E/F 2.2–2.4×, MADE1 3.3×, Alu 2.1×. ERV families show no gain (LTR5_Hs 0.91, HERVK-int 0.81, LTR7 0.89, HERVH-int 0.78; ratios below 1 reflect one count per fragment vs two cut sites).</li>
+<li><b>Conclusion:</b> cut sites stay the main ATAC measure, as the more precise accessibility readout. scTEATAC is the confirmation. ATAC support in the tiers counts either method.</li>
+</ul>
+</div>
+</div>
+
+<h3 id="r8">5.8 Candidate tiers</h3>
+<p><b>Group level:</b> 242 ERV/LTR candidates. <b>170 robust</b>, 44 of them with ATAC support. <b>72 discordant</b>: 28 read-through, 12 IRescue-only, 12 scTE-only, 9 read-through + IRescue-only, 9 absent in IRescue, 2 read-through + scTE-only.<br>
+<b>Stage level:</b> 127 candidates, 81 robust (16 with ATAC support), 46 discordant.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Group</th><th>Robust, with ATAC support</th><th>Robust, RNA only</th><th>Discordant (reason)</th></tr></thead>
+<tbody>
+<!--TIER_SUMMARY_ROWS-->
+</tbody></table></div>
+<p style="font-size:13.5px;color:var(--muted)">Shown: candidates with IRescue baseMean &gt; 20 or scTE-exclusive log2FC &gt; 1.5. The full table is below and in <code>$TE_OUT/qc/candidate_tiers_{group,stage}.csv</code>. ATAC support may come from the subfamily itself or its genome-paired LTR (shown after the arrow).</p>
+<details><summary>Full group-level candidate table (242 rows)</summary>
+<div class="table-wrap" style="margin:0 10px 10px"><table>
+<thead><tr><th>Subfamily</th><th>Group</th><th>Tier</th><th>Reason</th><th class="num">LFC IRescue</th><th class="num">LFC scTE excl.</th><th class="num">LFC nointron</th><th>ATAC feature</th><th class="num">ATAC LFC cut</th><th class="num">ATAC LFC scTE</th></tr></thead>
+<tbody>
+<!--TIER_FULL_ROWS-->
+</tbody></table></div>
+</details>
+
+<h3 id="r9">5.9 ZNF808 / MER11: no sign of ZNF808 failure in the liver-like cells (subfamily level)</h3>
+<figure><img src="<!--IMG:results/znf808/znf808_mer11.png-->" alt="Left: ZNF808 expression by cell group; liver is among the highest, PP1/PP2 average. Middle and right: ZNF808 vs MER11 subfamily signal across groups, no negative relationship."><figcaption>Left: ZNF808 per million gene UMIs by group (liver red, PP blue). Middle / right: ZNF808 vs MER11A/B/C and HERVK11-int signal across groups (≥ 200 cells), from RNA outside genes (scTE nointron) and ATAC cut sites.</figcaption></figure>
+<ul>
+<li><b>ZNF808 is not lower in the liver-like cells.</b> It is 1.4–1.6× <i>higher</i> than in PP1/PP2/FG (21 vs 13–15 per million gene UMIs). TRIM28 is similar. ZNF808 is lowest in late endocrine groups (8–9).</li>
+<li><b>MER11 is not specifically active in liver.</b> MER11A/B/C RNA and ATAC are highest in hPSC and early endoderm and fall afterwards. Liver vs PP ratios are 0.7–1.6 with no consistent direction. MER11C is <i>less</i> open in liver (0.73–0.78×).</li>
+<li><b>No anti-correlation</b> between ZNF808 and MER11 across groups (Spearman ρ from −0.32 to +0.33 over 20 comparisons).</li>
+<li><b>Caveat:</b> the knockout phenotype involved a few hundred specific MER11 copies. An average over thousands of MER11 copies could hide them. To check per copy: the MER11 copies that gain H3K27ac late in the ZNF808 knockout (their clusters 5–6), in our liver vs PP cells.</li>
+</ul>
+</section>
+
+<section id="caveats">
+<h2>6. Caveats to keep in mind</h2>
+<ul>
+<li><b>Optimistic p-values.</b> Without a sample term, units from the same sample are not independent, and stage, batch and cell type are confounded. Rank by effect size and by agreement between RNA, nointron and ATAC rather than by padj.</li>
+<li><b>Tiny groups</b> (late_SC_delta 42 cells in units, ductal 52, exocrine 121, early_SC_delta 223, stroma 223) give unstable calls. ductal produces 37 ATAC calls from 2 units. These groups should be flagged or excluded.</li>
+<li><b>Nointron is strict.</b> A real ERV promoter inside an intron, for example an LTR that drives an alternative first exon of its host gene, is also dropped in nointron. "intronic_only" means "cannot tell at subfamily level", not "proven artefact".</li>
+<li><b>scTE is not strand-aware for TEs</b> but IRescue is. That explains part of the higher exclusive counts (e.g. MER110-int 5.6× IRescue) and the "scTE only" calls. Antisense is a hypothesis until the per-copy strand check.</li>
+<li><b>ATAC normalisation</b> uses total cut sites only. Groups with different signal-to-noise (TSS enrichment) shift all TE subfamilies together; liver, OTX2_endo, stroma and ductal have many calls. A GC- and accessibility-matched background (chromVAR-style) would be more robust.</li>
+<li><b>Novelty</b> rests on a keyword literature search. Before writing, check the pancreas / islet single-cell TE literature more carefully, including preprints.</li>
+<li><b>Subfamily ≠ locus.</b> A subfamily call can be driven by a single active copy. Biological claims need the locus level.</li>
+<li>The README still describes the original plan (sample blocking, chromVAR). The analysis as run uses <code>~ group</code> and cut-site counts. The README should be updated.</li>
+</ul>
+</section>
+
+<section id="next">
+<h2>7. Next steps</h2>
+<ol>
+<li><b>Name the copies (running).</b> Per-copy IRescue on all samples, then <code>16_locus_candidates.py</code>. For each candidate: which copies, how many give 50% of the increase, and their host genes and orientation. Priorities:
+  <ul>
+    <li>HERV15 in PP: separate the real copies from the host gene;</li>
+    <li>LTR12_/LTR12E/HERV9 in ENP and endocrine;</li>
+    <li>MER92/MER110 host genes in late β;</li>
+    <li>MER110 antisense in ENP.</li>
+  </ul></li>
+<li><b>ZNF808 per copy.</b> Compare the MER11 copies that respond to ZNF808 knockout (De Franco 2023 supplementary loci) between our liver-like and PP cells.</li>
+<li><b>Regulatory context.</b> Using the diff-multiome group peak set (pending in the pipeline chat), test TE-family enrichment in cell-type peaks. Then look for TF motifs inside the induced or opened LTRs:
+  <ul>
+    <li>LTR12_/LTR12E: NF-Y? endocrine TFs?</li>
+    <li>LTR22/LTR22B: NEUROD1, RFX, NKX2-2?</li>
+    <li>LTR15: PP TFs (PDX1, SOX9, ONECUT1)?</li>
+  </ul>
+  LTR6 serves as the known control (FOXA2/GATA4).</li>
+<li><b>Housekeeping.</b> Flag or exclude tiny groups (ductal, late_SC_delta, exocrine). Redraw the ERV heatmap with tiers. Update the README to match the methods actually used. Commit scripts 05b and 12–17.</li>
+</ol>
+</section>
+
+<section id="appendix">
+<h2>8. Appendix</h2>
+<h3>Where things are</h3>
+<div class="table-wrap"><table>
+<thead><tr><th>Item</th><th>Path</th></tr></thead>
+<tbody>
+<tr><td>Repo (Alpine)</td><td><code>/pl/active/ZhuLab_BDC/GitHub/HERV_pancreatic_differentiation</code></td></tr>
+<tr><td>Local mirror</td><td><code>~/HERV_pancreatic_differentiation</code> (scripts, docs, small results)</td></tr>
+<tr><td>Outputs</td><td><code>/scratch/alpine/hzhu10@xsede.org/herv_pancreatic_differentiation/out</code></td></tr>
+<tr><td>TE annotation, scTE indexes</td><td><code>/pl/active/ZhuLab_BDC/genome/repeats_hg38/</code>, <code>…/scte/</code></td></tr>
+<tr><td>IRescue merged</td><td><code>$TE_OUT/irescue_subfamily/irescue_subfamily_merged.h5ad</code></td></tr>
+<tr><td>scTE merged</td><td><code>$TE_OUT/scte_rna_{exclusive,nointron}/scte_&lt;mode&gt;_merged.h5ad</code></td></tr>
+<tr><td>ATAC merged</td><td><code>$TE_OUT/atac_te_subfamily/atac_te_subfamily_merged.h5ad</code></td></tr>
+<tr><td>DESeq2 results</td><td><code>$TE_OUT/deseq2/{rna,atac,scte_exclusive,scte_nointron}/results/</code></td></tr>
+<tr><td>Read-through table</td><td><code>$TE_OUT/qc/scte_mode_comparison_{group,stage}.csv</code> (column <code>verdict</code>)</td></tr>
+<tr><td>scTEATAC per cell / merged</td><td><code>$TE_OUT/scte_atac/&lt;sample&gt;.h5ad</code>, <code>scte_atac_merged.h5ad</code></td></tr>
+<tr><td>ATAC method comparison</td><td><code>$TE_OUT/qc/atac_method_*</code></td></tr>
+<tr><td>Candidate tiers</td><td><code>$TE_OUT/qc/candidate_tiers_{group,stage}.csv</code>, LTR pairs <code>erv_int_ltr_pairs.csv</code></td></tr>
+<tr><td>ZNF808 / MER11</td><td><code>$TE_OUT/qc/znf808_mer11_by_group.csv</code>, <code>znf808_mer11.png</code></td></tr>
+<tr><td>Locus counts</td><td><code>$TE_OUT/irescue_locus/&lt;sample&gt;/counts/</code> (running), copy BED <code>$TE_ANNOT_DIR/irescue/ltr_loci.bed</code></td></tr>
+</tbody></table></div>
+
+<h3>Gotchas already solved</h3>
+<ul>
+<li>scTE <code>'rU'</code> file mode fails on Python 3.11, so it is patched to <code>'r'</code> in the env build.</li>
+<li>scTE needs BAMs filtered to whitelisted cells with a corrected UMI.</li>
+<li>scTE workers each load the full index, so it must run on <code>amem</code> (QoS <code>mem-normal</code>, large memory request).</li>
+<li>scTEATAC reads barcodes from read names, and <code>bamToBed -bedpe</code> needs name-sorted input. Fixed by prefixing read names with the CB tag and name-sorting (<code>05b_scte_atac.sb</code>).</li>
+<li><code>config.sh</code> does not export: use <code>set -a; source config.sh; set +a</code> for Python.</li>
+<li><code>acompile</code> needs QoS <code>compile</code> (for env builds with internet access).</li>
+</ul>
+
+<details><summary>config.sh</summary><pre><code><!--SCRIPT:config.sh--></code></pre></details>
+<details><summary>configs/samples.tsv</summary><pre><code><!--SCRIPT:configs/samples.tsv--></code></pre></details>
+</section>
+</main>
+</div>
+<script>
+(function(){
+  var root=document.documentElement, btn=document.getElementById('themeToggle'), key='herv-report-theme';
+  try{var s=localStorage.getItem(key); if(s) root.setAttribute('data-theme',s);}catch(e){}
+  btn.addEventListener('click',function(){
+    var cur=root.getAttribute('data-theme');
+    if(!cur){cur=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}
+    var nxt=cur==='dark'?'light':'dark'; root.setAttribute('data-theme',nxt);
+    try{localStorage.setItem(key,nxt);}catch(e){}
+  });
+})();
+</script>
+</body>
+</html>

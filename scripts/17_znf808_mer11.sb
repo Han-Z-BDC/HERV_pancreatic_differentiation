@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=32G
+#SBATCH --time=01:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --job-name=znf808
+#SBATCH --output=logs/znf808.%j.out
+# ZNF808 / MER11 check (17_znf808_mer11.py); needs the scTEATAC pseudobulk (12). Usage: sbatch scripts/17_znf808_mer11.sb
+set -euo pipefail
+set -a; source config.sh; set +a
+"$TE_ENV/bin/python" scripts/17_znf808_mer11.py

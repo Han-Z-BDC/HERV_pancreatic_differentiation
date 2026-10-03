@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=64G
+#SBATCH --time=02:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --job-name=scte_atac_de
+#SBATCH --output=logs/scte_atac_de.%j.out
+# After 05b: merge + pseudobulk scTEATAC (12), DESeq2 (08), compare with the cut-site ATAC results (13).
+# Usage: sbatch scripts/12_scte_atac_deseq2.sb
+set -euo pipefail
+set -a; source config.sh; set +a
+"$TE_ENV/bin/python" scripts/12_merge_scte_atac.py
+"$R_ENV/bin/Rscript" scripts/08_deseq2_te.R "$TE_OUT/deseq2/scte_atac" 2>&1 | grep -v R_HOME
+"$TE_ENV/bin/python" scripts/13_compare_atac_methods.py

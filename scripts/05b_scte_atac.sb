@@ -1,0 +1,41 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=6
+#SBATCH --mem=320G
+#SBATCH --time=24:00:00
+#SBATCH --partition=amem
+#SBATCH --qos=mem-normal
+#SBATCH --array=1-15%4
+#SBATCH --job-name=scte_atac
+#SBATCH --output=logs/scte_atac.%A_%a.out
+# scTEATAC on the Cell Ranger ARC ATAC BAM, made to work (the first attempt, archive_05_scte_atac.sb,
+# collapsed each sample into 2 "cells"):
+#   - scTEATAC never reads the CB tag. It runs `bamToBed -bedpe | awk -F '[\t:]' '{print $1,$2,$6,$7}'`,
+#     so the barcode is the first ':'-field of the read name (for Cell Ranger: the sequencer ID).
+#     -> prefix every read name with its CB: "AAAC...-1:LH00368:19:...".
+#   - bamToBed -bedpe needs mates next to each other -> name-sort (coordinate order skipped most pairs).
+#     Name-sorted, bamToBed reports the leftmost mate first, so start1..end2 is the fragment.
+#   - keep proper pairs only; drop unmapped, secondary, supplementary and duplicate reads (-f 2 -F 0xD0C).
+#     All MAPQ are kept: multi-mapping reads (MAPQ < 30, ~6%) sit on one random copy, which is fine at
+#     subfamily level -- these reads are absent from the fragment files used by 05_atac_te_counts.sb.
+# Counting (scTE): every TE locus overlapped by the whole fragment (not only its Tn5 cut sites) adds 1
+# to that locus' subfamily; cells are already whitelisted, so --min_counts 1.
+# Output: $TE_OUT/scte_atac/<sample>.h5ad. Usage: sbatch [--array=10] scripts/05b_scte_atac.sb
+set -euo pipefail
+source config.sh
+row=$(awk -F'\t' -v t="${SLURM_ARRAY_TASK_ID}" 'NR>1 && $1==t' configs/samples.tsv)
+sample=$(cut -f2 <<<"$row"); atac_bam=$(cut -f5 <<<"$row")
+wl="$TE_OUT/whitelists/${sample}.txt"
+export PATH="$TE_ENV/bin:$PATH"
+echo "task ${SLURM_ARRAY_TASK_ID}: ${sample} ($(wc -l < "$wl") cells)"
+tmpd="$TE_OUT/tmp_bam/${SLURM_JOB_ID}_${SLURM_ARRAY_TASK_ID}"; mkdir -p "$tmpd"; trap 'rm -rf "$tmpd"' EXIT
+nbam="$tmpd/${sample}.bam"     # file name gives the sample name inside scTE
+samtools view -@ 2 -h -f 2 -F 0xD0C -D "CB:$wl" "$atac_bam" \
+  | awk -v OFS='\t' '/^@/ { print; next }
+      { for (i = 12; i <= NF; i++) if ($i ~ /^CB:Z:/) { $1 = substr($i, 6) ":" $1; break }; print }' \
+  | samtools sort -n -@ 4 -m 3G -T "$tmpd/sort" -o "$nbam" -
+echo "name-sorted BAM: $(du -h "$nbam" | cut -f1)"
+out="$TE_OUT/scte_atac"; mkdir -p "$out"; cd "$out"
+scTEATAC -i "$nbam" -x "$TE_ANNOT_DIR/scte/hg38.te_atac.idx" -o "${sample}" -CB True \
+  --hdf5 True -p "$SLURM_CPUS_PER_TASK" --min_counts 1

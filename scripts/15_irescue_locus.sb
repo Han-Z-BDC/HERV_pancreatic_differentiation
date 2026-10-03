@@ -1,0 +1,38 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=12
+#SBATCH --mem=110G
+#SBATCH --time=24:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --array=1-15%5
+#SBATCH --job-name=irescue_locus
+#SBATCH --output=logs/irescue_locus.%A_%a.out
+# Locus-level RNA counts (IRescue -l) for every RepeatMasker LTR-class copy (ERVs and solo LTRs, 725,763),
+# to name the copies behind the subfamily calls and check their host-gene context.
+#   - feature ID (BED column 4) = "<subfamily>|<chrom>_<start>_<end>_<strand>", unique per copy;
+#     IRescue keeps it as the feature name
+#   - multi-mapping reads are shared between copies by IRescue's EM (per cell, per UMI); counts at
+#     individual young copies (HERVK HML-2, HERVH) are estimates, not unique evidence
+#   - forward-stranded (sense to the copy only), as the subfamily run (03); subfamily mode used ~40 GB,
+#     locus mode is given 110 GB
+# Output: $TE_OUT/irescue_locus/<sample>/counts/. Usage: sbatch [--array=10] scripts/15_irescue_locus.sb
+set -euo pipefail
+source config.sh
+export PATH="$TE_ENV/bin:$PATH"
+bed="$TE_ANNOT_DIR/irescue/ltr_loci.bed"
+if [ ! -s "$bed" ]; then
+  mkdir -p "$(dirname "$bed")"
+  zcat "$TE_ANNOT_DIR/rmsk_hg38.bed.gz" \
+    | awk -v OFS='\t' '$8 ~ /^LTR/ { print $1, $2, $3, $4 "|" $1 "_" $2 "_" $3 "_" $6, 0, $6 }' > "$bed.tmp"
+  mv "$bed.tmp" "$bed"
+fi
+row=$(awk -F'\t' -v t="${SLURM_ARRAY_TASK_ID}" 'NR>1 && $1==t' configs/samples.tsv)
+sample=$(cut -f2 <<<"$row"); gex_bam=$(cut -f4 <<<"$row")
+wl="$TE_OUT/whitelists/${sample}.txt"
+echo "task ${SLURM_ARRAY_TASK_ID}: ${sample} ($(wc -l < "$wl") cells), $(wc -l < "$bed") LTR loci"
+out="$TE_OUT/irescue_locus/${sample}"; mkdir -p "$out"
+irescue -b "$gex_bam" -r "$bed" -w "$wl" -c CB -u UB -l \
+  --strandedness forward --integers -p "$SLURM_CPUS_PER_TASK" -o "$out" -v
+ls -la "$out/counts"
