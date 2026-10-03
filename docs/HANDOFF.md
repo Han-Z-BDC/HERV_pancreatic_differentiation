@@ -1,4 +1,4 @@
-# Handoff: HERV / TE analysis (state on 2026-10-03)
+# Handoff: HERV / TE analysis (state on 2026-10-03, updated after the scTE mode comparison)
 
 Read this first when continuing the project in a new chat.
 
@@ -33,6 +33,9 @@ specific cell types during SC-islet differentiation? Data: the diff-multiome 10x
 | ATAC TE counts from fragments (cut sites x TE loci) | `05_atac_te_counts.sb` | `$TE_OUT/atac_te_subfamily/` (all 15) |
 | pseudobulk (sample x group, >= 20 cells) | `07_pseudobulk_te.py` | `$TE_OUT/deseq2/{rna,atac}/` (119 units each) |
 | DESeq2, group vs rest and stage vs rest | `08_deseq2_te.R`, `09_run_deseq2_te.sh` | `$TE_OUT/deseq2/{rna,atac}/results/` |
+| scTE RNA (exclusive + nointron), all 15 | `04_scte_rna.sb` (jobs 33356420, 33356418_10) | `$TE_OUT/scte_rna_{exclusive,nointron}/` |
+| scTE merge, pseudobulk (same 119 units), DESeq2 | `10_merge_scte.py` / `.sb` | `scte_<mode>_merged.h5ad`, `$TE_OUT/deseq2/scte_{exclusive,nointron}/` |
+| exclusive vs nointron read-through flags | `11_compare_scte_modes.py` | `$TE_OUT/qc/scte_mode_*` (local copy `results/scte_modes/`) |
 
 DESeq2 design: `~ group` (sample x group pseudobulks as replicates); size factors from library size
 (gene UMIs / all cut sites). Sample blocking is NOT used because early cell types come from a single
@@ -46,16 +49,31 @@ sample each; stage and batch are therefore confounded.
 - ATAC: LTR7/LTR7Y open in hPSC and DE; LTR6A/B in DE, GT, OTX2_endo; LTR22/LTR22B in the endocrine
   groups; many LTR10 / LTR19 families in PP, OTX2_endo, liver.
 
-## Running at handoff
-- scTE RNA, all samples, `exclusive` and `nointron` indexes: job 33356420 (amem, 4 at a time;
-  outputs `$TE_OUT/scte_rna_{exclusive,nointron}/<sample>.h5ad`).
+### scTE exclusive vs nointron (step 1, done 2026-10-03)
+nointron keeps only TE reads outside gene bodies, so nointron / exclusive = intergenic share of a
+subfamily's signal (overall ~10-20%; LTR class 21%). In exclusive, TE columns take 50-78% of all scTE
+counts (intronic reads). IRescue vs scTE-exclusive group log2FC r = 0.82; exclusive vs nointron r = 0.45.
+Each IRescue/exclusive call is labelled intergenic / weak / no_intergenic / intronic_only, plus
+`frac_ratio` = intergenic share in the called group / in the other groups (low = genic copies drive it).
+- Robust (also up in nointron): HERVH-int, LTR7/7Y, HERVS71-int, HERVK11-int, LTR6B in hPSC-DE-GT-FG-
+  OTX2_endo; LTR12_ / LTR12E / HERV9(NC)-int in ENP1-3 and early endocrine (intergenic share rises to
+  0.8-0.9 there); MER110-int and MLT1F2-int in ENP1-3; LTR60B in early beta / EC-beta; liver
+  HERVIP10B3, HERVI, PABL_A/B, LTR10B1/B2/E.
+- Read-through suspects (lost in nointron): MER92-int and MER110-int in late beta / EC-beta (and D22/D45;
+  MER110's ENP signal is intergenic, its late-beta signal is not); LTR48B (ENP, D15); LTR19C and LTR25-int
+  in PP2; HERVK-int in OTX2_endo; HERVE-int in hPSC; HERV4_I-int at D0 (stage level); LTR21A in liver/stroma.
+- HERV15-int in PP1/PP2: mixed. Still up in nointron (log2FC 1.5 / 1.7, padj < 0.05) but far below IRescue
+  (3.4 / 4.5); in PP2 only 9% of its reads are intergenic vs 34% elsewhere (frac_ratio 0.26), so most of
+  the PP2 boost is genic. Needs locus level.
+- HERVS71-int: robust (intergenic share ~0.5 everywhere).
 
 ## Next steps
-1. Merge scTE; compare `exclusive` vs `nointron` per subfamily to flag host-gene read-through (single-
-   nucleus RNA has many intronic reads). Candidates to check first: HERVS71, HERV15, LTR12_.
+1. (done) scTE exclusive vs nointron; see results above. Use the `verdict` column of
+   `scte_mode_comparison_group.csv` to drop or flag intronic_only calls downstream.
 2. RNA vs ATAC concordance per subfamily and group (which induced families are also opened?).
 3. Locus level: IRescue `-l` and/or Stellarscope (with the Telescope HERV annotation), plus strand /
-   host-gene checks; name the induced copies.
+   host-gene checks; name the induced copies. Priority: HERV15-int (PP), MER92-int / MER110-int (late
+   beta; find the host genes), LTR12_ (intergenic, endocrine).
 4. Use the diff-multiome group peak set (pending a method choice in the pipeline chat) for TE-family
    enrichment in cell-type peaks and TF motifs inside induced LTRs (chromVAR / HOMER / ChromBPNet).
 5. Exclude or flag tiny groups (ductal 52, late_SC_delta 56, exocrine 131 cells).
@@ -68,5 +86,6 @@ sample each; stage and batch are therefore confounded.
 - `scTE_build -o X` writes `X.<mode>.idx`; links `hg38.<mode>.idx` exist.
 - scTEATAC reads the cell barcode from the read name, not the CB tag -> unusable for Cell Ranger;
   replaced by `05_atac_te_counts.sb` (fragment files).
+- `config.sh` does not export: Python jobs need `set -a; source config.sh; set +a`.
 - `amem` jobs need QoS `mem-normal` and a large memory request (small requests are rejected);
   `acompile` needs QoS `compile`.

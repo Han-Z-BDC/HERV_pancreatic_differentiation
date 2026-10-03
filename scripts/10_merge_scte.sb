@@ -1,0 +1,16 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=64G
+#SBATCH --time=02:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --job-name=scte_merge
+#SBATCH --output=logs/scte_merge.%j.out
+# Merge + pseudobulk the scTE RNA counts (10_merge_scte.py), then DESeq2 on both scTE modes
+# (08_deseq2_te.R, same design as IRescue). Usage: sbatch scripts/10_merge_scte.sb
+set -euo pipefail
+set -a; source config.sh; set +a
+"$TE_ENV/bin/python" scripts/10_merge_scte.py
+for m in scte_exclusive scte_nointron; do "$R_ENV/bin/Rscript" scripts/08_deseq2_te.R "$TE_OUT/deseq2/$m" 2>&1 | grep -v R_HOME; done
