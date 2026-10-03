@@ -1,14 +1,16 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=60G
-#SBATCH --time=12:00:00
-#SBATCH --partition=acpu
-#SBATCH --qos=cpu-normal
-#SBATCH --array=1-15%8
+#SBATCH --cpus-per-task=6
+#SBATCH --mem=320G
+#SBATCH --time=24:00:00
+#SBATCH --partition=amem
+#SBATCH --qos=mem-normal
+#SBATCH --array=1-15%4
 #SBATCH --job-name=scte_rna
 #SBATCH --output=logs/scte_rna.%A_%a.out
+# Runs on amem: scTE workers (one per chromosome batch) each load the full TE index; 8 workers in
+# 60-80 GB were OOM-killed, so 6 workers in 320 GB.
 # scTE on the GEX BAM, subfamily level, with both indexes: exclusive (drops reads on exons of coding
 # genes / lncRNAs) and nointron (also drops intronic reads). CB/UB = Cell Ranger corrected tags.
 # scTE has no whitelist option; kept cells are selected afterwards. Usage: sbatch scripts/04_scte_rna.sb

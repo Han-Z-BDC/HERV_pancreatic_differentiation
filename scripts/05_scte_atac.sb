@@ -1,14 +1,15 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=80G
-#SBATCH --time=12:00:00
-#SBATCH --partition=acpu
-#SBATCH --qos=cpu-normal
-#SBATCH --array=1-15%8
+#SBATCH --cpus-per-task=6
+#SBATCH --mem=320G
+#SBATCH --time=24:00:00
+#SBATCH --partition=amem
+#SBATCH --qos=mem-normal
+#SBATCH --array=1-15%4
 #SBATCH --job-name=scte_atac
 #SBATCH --output=logs/scte_atac.%A_%a.out
+# Runs on amem: each scTE worker loads the full TE index (8 workers in 80 GB were OOM-killed).
 # scTEATAC on the ATAC BAM: per-cell TE-subfamily accessibility. -CB True is required (default False
 # would pool all cells). Duplicates ignored (default). The ATAC BAM CB tag is the GEX-matched barcode.
 # Usage: sbatch scripts/05_scte_atac.sb
