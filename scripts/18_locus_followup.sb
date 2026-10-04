@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=32G
+#SBATCH --time=01:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --job-name=locus_fu
+#SBATCH --output=logs/locus_fu.%j.out
+# After 16: segdup / nearest genes / host and neighbour gene expression for the copies behind each candidate.
+# Needs $TE_ANNOT_DIR/segdups_hg38.bed (UCSC genomicSuperDups: chrom start end partner fracMatch; fetched on acompile).
+set -euo pipefail
+set -a; source config.sh; set +a
+"$TE_ENV/bin/python" scripts/18_locus_followup.py

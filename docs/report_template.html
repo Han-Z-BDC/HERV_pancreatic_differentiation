@@ -117,6 +117,7 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
   <a class="sub" href="#s12">4.12 Candidate tiers</a>
   <a class="sub" href="#s13">4.13 Locus level</a>
   <a class="sub" href="#s14">4.14 ZNF808 / MER11</a>
+  <a class="sub" href="#s15">4.15 Copy follow-up</a>
   <a href="#results">5. Results</a>
   <a class="sub" href="#r0">5.0 What is already known</a>
   <a class="sub" href="#r1">5.1 Global TE load</a>
@@ -128,6 +129,7 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
   <a class="sub" href="#r7">5.7 ATAC: two methods</a>
   <a class="sub" href="#r8">5.8 Candidate tiers</a>
   <a class="sub" href="#r9">5.9 ZNF808 / MER11</a>
+  <a class="sub" href="#r10">5.10 Per copy: what is behind each candidate</a>
   <a href="#caveats">6. Caveats</a>
   <a href="#next">7. Next steps</a>
   <a href="#appendix">8. Appendix</a>
@@ -135,7 +137,8 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
 
 <main>
 <h1>ERV / transposable-element activity during SC-islet differentiation</h1>
-<div class="meta">Progress report, version 2 · 3 Oct 2026 (evening) · repo <code>/pl/active/ZhuLab_BDC/GitHub/HERV_pancreatic_differentiation</code> (Alpine, local git) · local mirror <code>~/Documents/Claude/HERV_pancreatic_differentiation</code> · outputs <code>$TE_OUT=/scratch/alpine/hzhu10@xsede.org/herv_pancreatic_differentiation/out</code></div>
+<div class="meta">Progress report, version 3 · 4 Oct 2026 · repo <code>/pl/active/ZhuLab_BDC/GitHub/HERV_pancreatic_differentiation</code> (Alpine, local git) · local mirror <code>~/Documents/Claude/HERV_pancreatic_differentiation</code> · outputs <code>$TE_OUT=/scratch/alpine/hzhu10@xsede.org/herv_pancreatic_differentiation/out</code></div>
+<div class="callout good"><b>New in version 3: per-copy results (5.10).</b> The endocrine LTR12/HERV9 signal comes from <b>one full-length HERV9 provirus at chr5:30.20 Mb</b>, 1 Mb from any protein-coding gene. Its 5′ LTR opens and the provirus is transcribed from ENP1/ENP2 on, peaking in early EC-β. Several other candidates turn out to be host transcripts (HERV15 in ACSM3, MER92 in a beta-cell lncRNA) or sit in an unmappable duplication (chr5q13). MER11 is not switched on copy by copy in the liver-like cells either.</div>
 <div class="callout info"><b>New in version 2:</b>
 <ul style="margin:6px 0 0;padding-left:18px">
 <li>scTEATAC fixed and run on all samples as a second ATAC method (4.5b, 5.7).</li>
@@ -155,6 +158,12 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
     <ul>
       <li>HERVH-int / LTR7, the pluripotency ERV, falls about 40× from D0 to D9 and is open in hPSC and DE.</li>
       <li>HERVS71 and its LTRs LTR6A/B peak at D4 in definitive endoderm, in both RNA and ATAC. This matches Wu et al. 2022 (LTR6B as a FOXA2/GATA4-bound DE enhancer) and Babarinde et al. 2025 (endoderm-specific LTR6A transcripts).</li>
+    </ul></li>
+  <li><b>Headline: one HERV9 provirus switches on at endocrine induction.</b> chr5:30,197,738–30,205,134 (+) has the structure LTR12B – HERV9NC/HERV9-int – LTR12_ and lies 1 Mb from the nearest protein-coding gene.
+    <ul>
+      <li><b>RNA:</b> zero from hPSC to FG; first seen in ENP1 (26 per million gene UMIs), ENP2 160, early EC-β 396, early δ 252; lower in late endocrine cells (29–108).</li>
+      <li><b>ATAC:</b> its 5′ LTR is closed to PP2 and opens in the same groups (ENP2 9, early EC-β 16 per million cut sites), in every unit.</li>
+      <li>This one copy is 90–97% of the subfamily-level "LTR12_/HERV9 in endocrine" call.</li>
     </ul></li>
   <li><b>New, robust programs at later stages.</b> Each is called by IRescue or scTE, confirmed by the other, and survives the read-through filter:
     <ul>
@@ -184,7 +193,8 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
 <tr><td>ATAC, second method: scTEATAC (fixed)</td><td><span class="pill good">done</span></td><td><code>05b_scte_atac.sb</code>, <code>12</code>, <code>13</code></td></tr>
 <tr><td>Candidate tiers: RNA × read-through × ATAC (both methods)</td><td><span class="pill good">done</span></td><td><code>14_candidate_tiers.py</code></td></tr>
 <tr><td>ZNF808 / MER11 check (subfamily level)</td><td><span class="pill good">done</span></td><td><code>17_znf808_mer11.py</code></td></tr>
-<tr><td>Locus level: IRescue <code>-l</code> on all LTR-class copies</td><td><span class="pill warn">running</span></td><td><code>15_irescue_locus.sb</code>, <code>16_locus_candidates.py</code></td></tr>
+<tr><td>Locus level: IRescue <code>-l</code> on all LTR-class copies, copies behind each candidate</td><td><span class="pill good">done</span></td><td><code>15</code>, <code>16</code></td></tr>
+<tr><td>Copy follow-up: duplications, host / nearby gene expression, per-copy ATAC, chr5 HERV9 provirus, MER11 per copy</td><td><span class="pill good">done</span></td><td><code>18</code>–<code>21</code>, <code>19</code></td></tr>
 <tr><td>TE enrichment in cell-type peaks, motifs in induced LTRs</td><td><span class="pill info">planned</span></td><td>—</td></tr>
 </tbody></table></div>
 </section>
@@ -442,7 +452,7 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
 </dl>
 <details><summary>scripts/14_candidate_tiers.py</summary><pre><code><!--SCRIPT:scripts/14_candidate_tiers.py--></code></pre></details>
 
-<h3 id="s13">4.13 Locus level (running)</h3>
+<h3 id="s13">4.13 Locus level</h3>
 <dl class="steps-meta">
 <dt>What</dt><dd>IRescue <code>-l</code>, sense strand only, on every RepeatMasker LTR-class copy (725,763). Each copy has a unique ID <code>&lt;subfamily&gt;|chrom_start_end_strand</code>. Then:
   <ol style="margin:4px 0;padding-left:20px">
@@ -462,6 +472,23 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
 <dt>How</dt><dd>ZNF808, TRIM28, SETDB1 and marker genes are read from the shared counts layer, column-wise without loading the 10 GB matrix, and summed into the 119 units. MER11A/B/C and HERVK11-int signal comes from all five TE count tables on the same units. Groups are compared, especially liver vs PP1/PP2/FG.</dd>
 </dl>
 <details><summary>scripts/17_znf808_mer11.py</summary><pre><code><!--SCRIPT:scripts/17_znf808_mer11.py--></code></pre></details>
+<details><summary>scripts/19_mer11_copies.py (per-copy MER11 in liver vs PP/FG)</summary><pre><code><!--SCRIPT:scripts/19_mer11_copies.py--></code></pre></details>
+
+<h3 id="s15">4.15 Copy follow-up</h3>
+<dl class="steps-meta">
+<dt>18</dt><dd>For the top copies of each candidate:
+  <ul style="margin:4px 0;padding-left:20px">
+    <li><b>segmental duplication</b> identity (UCSC genomicSuperDups, fetched on <code>acompile</code>). At ≥ 0.98, reads can be shared with a paralog, so the exact copy is uncertain even if the region's signal is real.</li>
+    <li>the <b>3 nearest protein-coding genes</b>;</li>
+    <li>whether the <b>host gene or nearby genes</b> go up in the same group, from the shared gene counts.</li>
+  </ul>
+  Host gene up → read-through or an ERV exon. Nearby gene up → possible enhancer. Nothing up → an autonomous ERV transcript.</dd>
+<dt>20</dt><dd><b>Per-copy ATAC:</b> Tn5 cut sites from the fragment files (tabix) in each copy ± 3 kb, which includes its LTRs. Summed into units and scaled by total cut sites.</dd>
+<dt>21</dt><dd>The chr5 HERV9 provirus in detail: RNA per part (IRescue per copy) and ATAC in 5 windows (5′ LTR, internal halves, 3′ LTR, downstream).</dd>
+</dl>
+<details><summary>scripts/18_locus_followup.py</summary><pre><code><!--SCRIPT:scripts/18_locus_followup.py--></code></pre></details>
+<details><summary>scripts/20_locus_atac.py</summary><pre><code><!--SCRIPT:scripts/20_locus_atac.py--></code></pre></details>
+<details><summary>scripts/21_herv9_chr5_provirus.py</summary><pre><code><!--SCRIPT:scripts/21_herv9_chr5_provirus.py--></code></pre></details>
 </section>
 
 <section id="results">
@@ -650,8 +677,33 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
 <li><b>ZNF808 is not lower in the liver-like cells.</b> It is 1.4–1.6× <i>higher</i> than in PP1/PP2/FG (21 vs 13–15 per million gene UMIs). TRIM28 is similar. ZNF808 is lowest in late endocrine groups (8–9).</li>
 <li><b>MER11 is not specifically active in liver.</b> MER11A/B/C RNA and ATAC are highest in hPSC and early endoderm and fall afterwards. Liver vs PP ratios are 0.7–1.6 with no consistent direction. MER11C is <i>less</i> open in liver (0.73–0.78×).</li>
 <li><b>No anti-correlation</b> between ZNF808 and MER11 across groups (Spearman ρ from −0.32 to +0.33 over 20 comparisons).</li>
-<li><b>Caveat:</b> the knockout phenotype involved a few hundred specific MER11 copies. An average over thousands of MER11 copies could hide them. To check per copy: the MER11 copies that gain H3K27ac late in the ZNF808 knockout (their clusters 5–6), in our liver vs PP cells.</li>
+<li><b>Per copy (19): also negative.</b> Only <b>2</b> MER11A copies are "liver-on" (liver ≥ 2 CPM, ≥ 4× the maximum of PP1/PP2/FG, in at least half of the liver units):
+  <ul style="margin:4px 0;padding-left:20px">
+    <li>one in an exon of ZG16, i.e. part of that gene's transcript;</li>
+    <li>one in an intronic lncRNA 112 kb from AHR.</li>
+  </ul>
+  Too few MER11 copies are expressed at all (fewer than 20 at ≥ 2 CPM) for MER11 to enter the subfamily ranking. Our liver-like cells do not look like ZNF808 loss. A remaining test would be the exact knockout-responsive copies from De Franco et al.'s supplement.</li>
 </ul>
+
+
+<h3 id="r10">5.10 Per copy: what is behind each candidate</h3>
+<figure><img src="<!--IMG:results/locus/herv9_chr5_provirus.png-->" alt="Bar chart across cell groups: RNA of the chr5 HERV9 provirus (blue) and ATAC at its 5' LTR (red). Both are zero from hPSC to PP2, rise from ENP1, peak in early EC-beta, and are lower in late endocrine groups."><figcaption><b>The chr5:30.20 Mb HERV9 provirus.</b> Blue: RNA, sense UMIs over all parts of the provirus per million gene UMIs. Red: ATAC at its 5′ LTR (LTR12B) per million cut sites. Both are silent to PP2, switch on at ENP1/ENP2, and peak in early endocrine cells, highest in EC-β. The 5′ LTR is open (&gt; 2 per million) in every unit of ENP2, ENP3 and all early endocrine groups. The whole 7.4 kb provirus opens, not just one LTR.</figcaption></figure>
+
+<div class="table-wrap"><table>
+<thead><tr><th>Candidate</th><th>Copies behind it (share of increase)</th><th>Context / neighbours</th><th>ATAC at the copy</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td><b>LTR12_ / HERV9 / HERV9NC</b><br>ENP2, early endocrine</td><td>One provirus, chr5:30,197,738–30,205,134 (+) (89–97%, every unit)</td><td>Intergenic, not duplicated. Nearest protein-coding gene CDH6, 1 Mb away and <i>down</i> in these groups.</td><td>5′ LTR and whole provirus open from ENP1/2 (early EC-β 16 vs ≤ 0.3 before PP2)</td><td><span class="pill good">autonomous LTR-driven ERV transcript</span> Top new finding.</td></tr>
+<tr><td><b>HERV15-int</b><br>PP1 / PP2</td><td>ACSM1/ACSM3 locus on chr16 (~60%), lncRNA AC022075.1 next to KLRK1 on chr12 (~20%)</td><td>Exonic/intronic. ACSM3 up 9× in PP2 (836 CPM), ACSM1 6.5×; the lncRNA up 9×, KLRK1 up 9×.</td><td>The LTR15 / HERV15 copy in ACSM3 is opened in PP2 (2.5×, 4/4 units)</td><td><span class="pill warn">ERV inside a PP-induced transcript</span> Possibly an LTR15-driven ACSM3 isoform; check where reads start.</td></tr>
+<tr><td><b>LTR12E / MER110-int / MLT1F2-int</b><br>ENP1–3</td><td>Copies spread over chr5:69.7–71.3 Mb (5q13.2, the SMN1/SMN2 / NAIP / SERF1 duplication)</td><td>Segmental duplication 99.7–99.9%. Region genes: NAIP up 2.3–2.6×; SMN, SERF1 flat.</td><td>Almost no cut sites, because duplicated reads are dropped (MAPQ &lt; 30)</td><td><span class="pill warn">regional ENP signal, copy not resolvable</span></td></tr>
+<tr><td><b>MER92-int / MER110-int</b><br>late β / EC-β</td><td>One cluster, introns of lncRNA AC112770.1 on chr3:161.6 Mb (~65%)</td><td>AC112770.1 up 4× in late β (1,027 CPM). Nearest protein-coding gene OTOL1, 120 kb.</td><td>Mildly open (log2FC 0.7–1.0)</td><td><span class="pill bad">read-through of a beta-cell lncRNA</span></td></tr>
+<tr><td><b>LTR19C / LTR25-int</b><br>PP2</td><td>One intron of ANXA4 (87%)</td><td>ANXA4 up 3× in PP2</td><td>Open (2×)</td><td><span class="pill bad">host-gene read-through</span></td></tr>
+<tr><td><b>LTR48B</b><br>ENP</td><td>Exon of histone gene HIST1H4I</td><td>Histone cluster</td><td>—</td><td><span class="pill bad">artefact (histone mRNA)</span></td></tr>
+<tr><td><b>HERVK-int</b><br>OTX2_endo</td><td>Exons of the lncRNA PCAT14 (82%)</td><td>PCAT14 is an HERVK-derived lncRNA</td><td>—</td><td><span class="pill bad">host transcript</span></td></tr>
+<tr><td><b>HERVS71-int</b><br>DE (known)</td><td>Many copies (n50 = 6): 8p23.1 (duplicated, 97.7–98.8%), chr3:164.34 Mb, intron of lncRNA AC068587.4</td><td>Composite loci with LTR6B; one lncRNA host up 4×</td><td>Mildly open (log2FC 0.6–1.0)</td><td><span class="pill info">known, many copies</span></td></tr>
+<tr><td><b>HERVIP10B3 / PABL_A</b><br>liver</td><td>Many copies (n50 4–5): near FKBP5 (intergenic), introns of NECTIN3-AS1, SOAT2 (liver gene, up 21×)</td><td>Mixed: some host genes up, some intergenic</td><td>Mostly opened (log2FC 0.9–1.5 at 7 of 10 top copies)</td><td><span class="pill good">liver-like ERV program</span> Partly host genes.</td></tr>
+<tr><td><b>LTR60B</b><br>early β</td><td>ASIC2 intron, near SGCD (both up 3.5×)</td><td>Genes up with it</td><td>Not opened</td><td><span class="pill warn">mostly host / neighbour genes</span></td></tr>
+</tbody></table></div>
+<p style="font-size:13.5px;color:var(--muted)">Full tables: <code>$TE_OUT/qc/locus_candidates_group.csv</code> (copies per candidate), <code>locus_followup.csv</code> (duplications, neighbours, gene expression), <code>locus_atac.csv</code>, <code>herv9_chr5_provirus.csv</code>. Local copies are in <code>results/locus/</code>.</p>
 </section>
 
 <section id="caveats">
@@ -671,14 +723,12 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
 <section id="next">
 <h2>7. Next steps</h2>
 <ol>
-<li><b>Name the copies (running).</b> Per-copy IRescue on all samples, then <code>16_locus_candidates.py</code>. For each candidate: which copies, how many give 50% of the increase, and their host genes and orientation. Priorities:
+<li><b>(done) Name the copies</b>, see 5.10. Follow-ups:
   <ul>
-    <li>HERV15 in PP: separate the real copies from the host gene;</li>
-    <li>LTR12_/LTR12E/HERV9 in ENP and endocrine;</li>
-    <li>MER92/MER110 host genes in late β;</li>
-    <li>MER110 antisense in ENP.</li>
+    <li><b>chr5 HERV9 provirus:</b> what does its transcript look like? Check where reads fall along it, whether it is spliced or polyadenylated, and whether any public long-read or islet data show it. Is it expressed in primary human islets or fetal pancreas endocrine cells? Which TFs bind its LTR12B (NEUROG3, NEUROD1, RFX, NKX2-2 motifs; NF-Y)? Does it affect anything nearby (Hi-C or co-accessibility)? Knockdown or LTR deletion would test function.</li>
+    <li><b>HERV15 / ACSM3:</b> does the PP ACSM3 transcript start in the LTR15? Look at read coverage, then GENCODE / long-read isoforms.</li>
   </ul></li>
-<li><b>ZNF808 per copy.</b> Compare the MER11 copies that respond to ZNF808 knockout (De Franco 2023 supplementary loci) between our liver-like and PP cells.</li>
+<li><b>(done, negative) ZNF808 per copy.</b> Optional: test the exact knockout-responsive MER11 copies from De Franco 2023 supplementary tables.</li>
 <li><b>Regulatory context.</b> Using the diff-multiome group peak set (pending in the pipeline chat), test TE-family enrichment in cell-type peaks. Then look for TF motifs inside the induced or opened LTRs:
   <ul>
     <li>LTR12_/LTR12E: NF-Y? endocrine TFs?</li>

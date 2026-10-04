@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=64G
+#SBATCH --time=03:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --job-name=locus_cand
+#SBATCH --output=logs/locus_cand.%j.out
+# After 15 (all samples): pseudobulk the locus counts, host-gene context, copies behind each candidate.
+# Usage: sbatch scripts/16_locus_candidates.sb
+set -euo pipefail
+set -a; source config.sh; set +a
+"$TE_ENV/bin/python" scripts/16_locus_candidates.py

@@ -90,11 +90,23 @@ Each IRescue/exclusive call is labelled intergenic / weak / no_intergenic / intr
 - Apparently new (keyword search only): HERV15/LTR15 in PP (partly genic), LTR12_/LTR12E/HERV9 in
   ENP/early endocrine (intergenic, RNA only), LTR22/LTR22B opened in endocrine (ATAC only), MLT1F2-int
   in ENP, HERVIP10B3/LTR10B and PABL in the liver-like cells. MER110-int ENP = scTE-only (antisense?).
-- RUNNING: IRescue locus mode on all LTR-class copies, job 33369228 (sample 10 done as test, 3 min /
-  29 GB, totals match subfamily run r = 0.998). Then run `16_locus_candidates.py` (pseudobulk loci,
-  host-gene context, copies behind each candidate) and redo ZNF808 per copy.
+- Locus level DONE (2026-10-04): IRescue -l on all 725,763 LTR-class copies (15), copies per candidate
+  (16), segdup / neighbour genes / host-gene expression (18), per-copy ATAC from fragments (20), MER11
+  per copy (19), chr5 HERV9 provirus detail (21).
+  HEADLINE: LTR12_/HERV9 endocrine signal = ONE full-length HERV9 provirus chr5:30,197,738-30,205,134 (+)
+  (LTR12B 5' LTR - HERV9NC-int - HERV9-int - LTR12_ 3' LTR), intergenic (CDH6 1 Mb, down), not segdup.
+  RNA 0 hPSC..FG, ENP1 26, ENP2 160, early EC-beta 396, early delta 252, late 29-108 (per M gene UMIs);
+  5' LTR ATAC closed to PP2, opens ENP1/2, early EC-beta 16 per M cut sites; all units.
+  Others: HERV15 PP = copies in ACSM1/ACSM3 (ACSM3 up 9x in PP2; LTR15 there opened) + lncRNA next to
+  KLRK1; ENP LTR12E/MER110/MLT1F2 = chr5q13 SMN segdup (>=99.7%; copy unresolvable, no ATAC reads);
+  MER92/MER110 late beta = introns of lncRNA AC112770.1 (up 4x); LTR19C/LTR25 PP2 = ANXA4 intron;
+  LTR48B = HIST1H4I exon; HERVK OTX2 = PCAT14 exons. MER11 per copy: only 2 liver-on copies -> no
+  ZNF808-loss signature. Report v3 has all of it (section 5.10).
 
-1. (done) scTE exclusive vs nointron, ATAC methods, tiers -- see above.
+1. (done) scTE exclusive vs nointron, ATAC methods, tiers, locus level -- see above.
+   NEXT on the chr5 HERV9 provirus: read coverage along it (where transcripts start/end, splicing), public
+   islet / fetal pancreas data, TF motifs in LTR12B (NEUROG3/NEUROD1/RFX/NKX2-2, NF-Y), co-accessible genes.
+   HERV15/ACSM3: does the PP ACSM3 isoform start in LTR15?
 2. RNA vs ATAC concordance per subfamily and group (which induced families are also opened?).
 3. Locus level: IRescue `-l` and/or Stellarscope (with the Telescope HERV annotation), plus strand /
    host-gene checks; name the induced copies. Priority: HERV15-int (PP), MER92-int / MER110-int (late
