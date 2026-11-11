@@ -1,0 +1,84 @@
+# Parameters for scripts/1.2_remove_background.py -- step 1.2: ambient RNA
+# removal with SoupX.
+#
+# Compared against the lab's own notebook, CellCommander/IGVF-UCSD, and
+# sc-best-practices.org before picking these defaults -- see the design
+# discussion for the full three-way comparison. The one point where all
+# three genuinely disagreed was contamination estimation: CellCommander/
+# IGVF-UCSD require a curated marker-gene file (known-absent genes per
+# cluster); the lab's own notebook and sc-best-practices both use SoupX's
+# fully automatic autoEstCont() instead. This pipeline uses autoEstCont --
+# no marker file, so no new failure mode from a bad marker list, and it's
+# what's already validated on this lab's own data.
+
+# --- pre-clustering scaffold (used ONLY to group cells for SoupX -- these
+# clusters are not used anywhere else downstream) ---
+normalize_target_sum: 10000.0     # matches the lab's own notebook + sc-best-practices (CellCommander uses median instead)
+n_hvgs: 3000                      # matches the lab's own notebook + CellCommander (sc-best-practices skips HVG selection here)
+n_pcs: 50
+n_neighbors: 30
+leiden_resolution: 1.0
+umap_min_dist: 0.3
+random_state: 0
+
+# min_cells filter applied ONLY to the throwaway clustering copy, never to
+# the real output -- matches the lab's own notebook + CellCommander.
+# sc-best-practices applies this to the final corrected matrix instead,
+# permanently dropping those genes; this pipeline keeps that decision
+# separate from ambient-RNA correction.
+clustering_min_cells: 20
+
+# SoupX itself
+round_to_int: true                # all three references agree on this
+tfidf_min_fallbacks: [0.8, 0.5, 0.3]
+                                   # NOT a blanket override -- autoEstCont() is
+                                   # always tried with SoupX's own default
+                                   # (tfidfMin=1) FIRST. Only on a real
+                                   # failure does run_soupx() fall back
+                                   # through this list, in order, stopping at
+                                   # the first value that works. 0.8 matches
+                                   # the lab's own BATCH-processing notebook's
+                                   # fix (diff.pre.proc.ipynb); 0.5/0.3 are
+                                   # further fallbacks for a sample that
+                                   # still fails at 0.8, going lower only as
+                                   # far as actually needed. Confirmed with
+                                   # the user: don't change the default for
+                                   # every sample, only reach for a lower
+                                   # value on the specific samples that need
+                                   # it. See scripts/1.2_remove_background.py's
+                                   # run_soupx() docstring for the full reasoning.
+
+manual_contamination_fallbacks: [0.8, 0.75]
+                                   # Second-tier fallback, only reached if EVERY
+                                   # tfidf_min_fallbacks attempt above still
+                                   # fails. Bypasses autoEstCont's estimation
+                                   # entirely -- SoupX's own
+                                   # setContaminationFraction(sc, contFrac,
+                                   # forceAccept=TRUE) with each value here, in
+                                   # order. Confirmed real (not hypothetical) on
+                                   # a handful of batch1 T11/H1 samples after
+                                   # 1.1_rna_qc.py's adaptive %MT cutoff started
+                                   # retaining many more high-MT cells than the
+                                   # old fixed 3.0% did -- autoEstCont's own rho
+                                   # estimate on those samples came back
+                                   # implausibly high (0.75-0.80) and refused to
+                                   # proceed without forceAccept. User-confirmed
+                                   # values (0.8, then 0.75) -- not from the
+                                   # notebook, this specific failure hadn't come
+                                   # up there.
+
+# Diagnostic output -- pre/post SoupX UMAP + cluster plot, matching the
+# lab's own notebook and CellCommander (sc-best-practices skips this).
+# Mandatory per the lab's before/after-visualization requirement.
+save_diagnostic_plot: true
+
+# Per-sample override: a list of pre-SoupX leiden cluster labels (as
+# strings) to EXCLUDE before running SoupX, for a documented, one-off
+# technical problem (e.g. the lab's own D22_rep1: a wet-lab GEM barcoding
+# failure). Do not use this as a general QC step -- that's what step 1.1
+# already does. Empty by default; only set an entry when there's a real,
+# documented reason.
+exclude_preclusters_by_sample: {}
+# Example:
+# exclude_preclusters_by_sample:
+#   D22_rep1: ["0", "1", "2"]

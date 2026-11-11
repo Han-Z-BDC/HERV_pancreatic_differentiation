@@ -1,0 +1,16 @@
+# Merged all-samples ATAC embedding (6.2). Tile features only, no peak calling.
+random_state: 0
+n_features: 250000          # best label purity in every per-stage run (6.1)
+filter_lower_quantile: 0.005
+filter_upper_quantile: 0.005
+n_comps: 30
+exclude_first_spectral_dim: true
+n_neighbors: 50             # snap.pp.knn default, as 4.2 / 6.1
+# Batch-correction variants compared on the same metrics as RNA 5.7.
+# scanorama (snap.pp.scanorama_integrate) is not installed in the shared env.
+variants:
+  - {name: uncorrected}
+  - {name: harmony_sample,    method: harmony, batch: sample_id}
+  - {name: harmony_diffbatch, method: harmony, batch: diff_batch}
+  - {name: mnc_sample,        method: mnc,     batch: sample_id}
+  - {name: mnc_diffbatch,     method: mnc,     batch: diff_batch}

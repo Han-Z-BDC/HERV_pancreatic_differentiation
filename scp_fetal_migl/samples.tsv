@@ -1,0 +1,7 @@
+sample_id	h5_rel
+S1_14PCW	S1_14PCW/outs/raw_feature_bc_matrix.h5
+S2_14PCW	S2_14PCW/outs/raw_feature_bc_matrix.h5
+S3_16PCW	S3_16PCW/outs/raw_feature_bc_matrix.h5
+S4_16PCW	S4_16PCW/outs/raw_feature_bc_matrix.h5
+S5_18PCW	S5_18PCW/outs/raw_feature_bc_matrix.h5
+S6_18PCW	S6_18PCW/outs/raw_feature_bc_matrix.h5

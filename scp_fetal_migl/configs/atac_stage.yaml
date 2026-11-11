@@ -1,0 +1,22 @@
+# Per-stage ATAC embedding (6.1). NO peak calling anywhere in this step:
+# features are SnapATAC2's fixed-width genome tiles (bin_size=500 from 2.2,
+# already in each {sample}.atac_final.h5ad), counted by paired-insertion.
+random_state: 0            # ATAC track's seed convention (2.2 / 4.2)
+
+# Feature selection on the POOLED cells of one stage, replicating
+# snap.pp.select_features' own logic (whole-genome tiles ranked by number
+# of cells with signal): drop bins overlapping the blacklist, drop the
+# lowest/highest filter_*_quantile of nonzero bins by count, keep the top
+# n_features. Notebook used 250000; 2.2 used 50000 per sample. Both are run
+# in the pilot (see n_features_list) so the choice is checked, not assumed.
+n_features_list: [50000, 250000]
+filter_lower_quantile: 0.005
+filter_upper_quantile: 0.005
+
+n_comps: 30
+exclude_first_spectral_dim: true    # matches 2.2 / 4.2
+n_neighbors: 50                     # snap.pp.knn default, as in 4.2 and the notebooks
+leiden_resolution: 1.0
+harmony_batch: sample_id            # per-sample, same convention as RNA 5.x strategy B
+metric_k: 30                        # neighbours for label purity
+ilisi_k: 60

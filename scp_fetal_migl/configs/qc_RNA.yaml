@@ -1,0 +1,110 @@
+# Parameters for scripts/1.1_rna_qc.py -- step 1.1 of RNA QC:
+# (1) pre-threshold on total counts / genes per cell, (2) MT% / Ribo% cutoff.
+# This file is versioned (unlike config.sh) -- it's the record of what
+# thresholds were actually used, per the lab's design decision to prefer a
+# universal, reproducible default over hand-picked-per-sample cutoffs.
+
+# --- Step 1: count/gene pre-threshold ---
+# "mad" (default, recommended): flag a cell as a low-quality outlier if its
+# log1p(total_counts) or log1p(n_genes_by_counts) falls more than n_mads
+# median-absolute-deviations below the sample's own median. This is the
+# method scanpy/sc-best-practices and both reference pipelines (IGVF-UCSD,
+# CellCommander) converge on, and it self-calibrates per sample instead of
+# needing a hand-picked number for every batch.
+#
+# "manual": use fixed log1p-space bounds instead of MADs. Only use this for
+# a specific sample that needs a documented, deliberate override -- set its
+# bounds under manual_bounds below. A sample with filtering_strategy "manual"
+# but no entry under manual_bounds is a hard error, on purpose.
+filtering_strategy: mad
+# FETAL ATLAS: 3, not the repo default of 5. At 4-5 MAD the counts
+# criterion removes ~0 cells in every Olaniru pool, i.e. it stops filtering at all, while the
+# distributions show a clear low-quality left shoulder. Chosen from the plots in
+# docs/fetal_qc_review.html. Step 1.1 itself is run by scripts/fetal/09_qc_filter.py.
+n_mads: 3
+
+# Per-sample override, only consulted when filtering_strategy: manual for
+# that sample (see manual_bounds_by_sample below). Values are in log1p space
+# (log1p of raw counts/genes), matching how the thresholds are chosen and
+# plotted -- not linear counts.
+manual_bounds_by_sample: {}
+# Example:
+# manual_bounds_by_sample:
+#   D22_rep1:
+#     log1p_total_counts_min: 8.0
+#     log1p_total_counts_max: 11.0
+#     log1p_n_genes_by_counts_min: 7.0
+#     log1p_n_genes_by_counts_max: 9.0
+
+# Per-sample choice of strategy. Any sample not listed here uses
+# filtering_strategy above (i.e. "mad" by default).
+filtering_strategy_by_sample: {}
+# Example:
+# filtering_strategy_by_sample:
+#   D22_rep1: manual
+
+# --- Step 2: MT% cutoff ---
+# "mad" (default): one-sided (upper only) adaptive threshold --
+# median(pct_counts_mt) + mt_pct_n_mads * MAD(pct_counts_mt), clamped to
+# [mt_pct_floor, mt_pct_cap]. Low %MT is never a quality problem, so
+# there's no lower bound -- same one-sidedness as step 1's MAD filter.
+#
+# Replaced a single fixed mt_pct_max (previously 3.0 for every sample)
+# after checking real per-cell pct_counts_mt distributions on this project
+# (scripts/_check_mt_distributions.py): several samples' MEDIAN %MT was
+# already at or above 3.0% (e.g. HZ015_D0_rep1: median 8.15%; several
+# HZ021/HZ019 samples: median 2.9-3.3%) -- meaning a fixed 3.0% cutoff was
+# slicing through the BULK of those samples' distributions, not a
+# dying-cell tail, while doing almost nothing for other samples (XW002:
+# median ~0.06-0.31%). The real baseline %MT differs enormously by
+# diff_batch/sample here, so one fixed number can't be right for all of
+# them -- this is exactly why step 1's count/gene filters are already
+# MAD-based; %MT just hadn't been made consistent with that until now.
+mt_pct_strategy: mad
+mt_pct_n_mads: 5
+
+# mt_pct_floor: never let the adaptive threshold go BELOW this. Protects
+# already-clean, tightly-clustered samples (e.g. XW002, MAD~0.03) from a
+# real failure mode of pure MAD-based filtering: when a sample's own %MT
+# spread is very tight, even a "generous" n_mads multiple is a tiny
+# absolute number -- stricter than a sane fixed cutoff, which would newly
+# flag normal cells as outliers in a sample that was already fine. Same
+# purpose as scater::isOutlier's own min_diff parameter. Set to the old
+# fixed default (3.0) so already-clean samples land exactly where the old
+# behavior left them.
+mt_pct_floor: 3.0
+
+# mt_pct_cap: never let the adaptive threshold exceed this. Stops a
+# genuinely elevated-or-skewed baseline (or a heavy right tail) from
+# producing an implausibly permissive threshold -- confirmed to actually
+# bind for HZ015_D0_rep1 (raw median+5MAD would be 31.16%, capped to 15%).
+mt_pct_cap: 15.0
+
+# "fixed": use mt_pct_max directly for every sample (the old, pre-MAD
+# behavior) -- only for a specific sample that needs a documented,
+# deliberate override. null = no MT filter at all for that sample
+# (diagnostic only). Set per-sample via mt_pct_strategy_by_sample /
+# mt_pct_max_by_sample below, never globally -- "mad" is the project
+# default now.
+mt_pct_max: null
+
+mt_pct_strategy_by_sample: {}
+# Example:
+# mt_pct_strategy_by_sample:
+#   some_sample: fixed
+mt_pct_max_by_sample: {}
+# Example:
+# mt_pct_max_by_sample:
+#   some_sample: 5.0
+
+# --- Ribo% cutoff ---
+# Plain fixed percentage, NOT MAD-based -- no equivalent adaptive-baseline
+# concern was found for ribo content (unlike MT%, see above), and high
+# ribo fraction is often biological (translationally active progenitor
+# states) rather than a quality problem.
+#
+# ribo_pct_max: null by default -- ribosomal content is computed and
+# plotted for every sample but NOT filtered on unless you set a number
+# here, since enforcing a cutoff by default would risk removing real cell
+# states.
+ribo_pct_max: null

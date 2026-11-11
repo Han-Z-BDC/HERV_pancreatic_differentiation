@@ -1,0 +1,88 @@
+# Parameters for scripts/4.1_rna_normalize.py -- step 4.1: single-sample RNA
+# normalization + UMAP, two parallel methods (log-normalize, SCTransform).
+# NOT integration across samples/replicates -- that's a future step.
+#
+# Design (compared the lab's own notebook -- 3.single.timepoint.joint.
+# analysis.ipynb -- against current scanpy and current Seurat docs, and a
+# live disagreement between them; confirmed with the user at each fork):
+#
+#   - Two normalization paths, matching the notebook's own two methods
+#     ("I think I did both sctransform and log method"):
+#       1. "log": scanpy-native normalize_total -> log1p -> HVG -> PCA ->
+#          UMAP -> Leiden. Deliberately NOT Seurat's NormalizeData/
+#          ScaleData/RunPCA equivalent -- see below.
+#       2. "sct": Seurat::SCTransform (via rpy2, the one piece of math with
+#          no scanpy equivalent to the notebook's validated method) ->
+#          RunPCA -> RunUMAP in R, results transferred back into the same
+#          AnnData object used by the log path. Leiden clustering is then
+#          done in scanpy on the transferred sct.pca, for one consistent
+#          clustering method across both paths (not Seurat's FindClusters).
+#
+#   - Why the log path doesn't scale (no ScaleData/sc.pp.scale equivalent):
+#     checked scanpy's own current tutorial (scanpy.readthedocs.io/.../
+#     tutorials/basics/clustering.html) -- as of an April 2025 change
+#     (scverse/single-cell-best-practices#185), it no longer scales before
+#     PCA either. sc-best-practices' own reasoning (PR #473): scaling
+#     forces every gene to unit variance, so a lowly-expressed noise gene
+#     contributes as much to PCA as a real marker gene -- expression
+#     magnitude is itself informative and scaling throws that away. Only
+#     Seurat's own default tutorial still scales; this pipeline follows
+#     scanpy's current position for the log path specifically, since that
+#     path is now scanpy-native end to end.
+#   - Why the log path also doesn't regress out mt%/ribo%/cell-cycle
+#     (confirmed with the user): matches current scanpy's tutorial exactly
+#     (normalize_total -> log1p -> HVG -> PCA, nothing else). These
+#     covariates are still computed and stored in .obs for diagnostic UMAP
+#     coloring either way -- just not regressed out of the PCA input on
+#     this path. The SCT path remains the only one that removes these
+#     confounds (SCTransform's vars.to.regress, matching the notebook).
+#   - Why SCT still uses Seurat, not scanpy's analytic Pearson residuals
+#     (sc.experimental.pp.normalize_pearson_residuals): SCTransform is
+#     what the lab's own notebook actually validated on this data --
+#     different exact math (regularized-NB residuals vs. analytic Pearson
+#     residuals) but the same underlying idea sc-best-practices favors
+#     (model expression's technical mean-variance relationship per gene;
+#     let only leftover residual variance drive PCA). No reason to
+#     substitute the untested scanpy alternative for the validated one.
+#
+# Both paths start from the same gene-filtered, SoupX-corrected counts
+# (adata.layers["soupx_counts"] if present, else .X) -- min_cells filter
+# applied once, shared by both, matching the notebook.
+#
+# vst.flavor="v2" for SCTransform matches the notebook exactly.
+
+random_state: 1234   # matches the notebook's own seed exactly (not this
+                      # pipeline's usual random_state: 1) -- this step is
+                      # literally porting that notebook's math, so its own
+                      # seed is the one that matters for reproducing it.
+
+min_cells: 20         # gene filter, applied once before both paths -- matches the notebook
+
+# --- log path (scanpy-native) ---
+log:
+  n_top_genes: 2000        # matches Seurat's FindVariableFeatures default AND scanpy's own current tutorial
+  hvg_flavor: seurat        # operates on log1p-transformed data, current scanpy tutorial's default (not seurat_v3, which wants raw counts)
+  n_pcs: 30                 # matches the notebook's dims=1:30, for an apples-to-apples comparison with the SCT path's UMAP
+
+# --- SCT path (Seurat via rpy2) ---
+sct:
+  vst_flavor: v2
+  vars_to_regress: [pct_counts_mt, pct_counts_ribo, S_score, G2M_score]
+  n_pcs: 30                 # matches the notebook's npcs=30, dims=1:30
+
+# --- cell-cycle scoring -- computed once in scanpy (sc.tl.score_genes_cell_cycle),
+# using cc.genes$s.genes / cc.genes$g2m.genes pulled from the R Seurat
+# package at run time (not scanpy's own tutorial's gene list) so both
+# paths agree on the exact same gene set and scores. Stored in .obs for
+# both paths (diagnostic coloring on the log path; also sent into R as
+# S.Score/G2M.Score for SCTransform's regression on the sct path).
+
+# --- clustering (diagnostic -- not consumed by any later step) ---
+# Both done in scanpy, on each path's own PCA -- not part of the
+# notebook's pre-integration flow (it doesn't cluster until after
+# integration), added here for "view on UMAP" the same way every other
+# step in this pipeline includes a diagnostic Leiden/UMAP.
+n_neighbors: 15
+leiden_resolution: 1.0
+
+save_diagnostic_plot: true

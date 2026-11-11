@@ -1,0 +1,5 @@
+sample_id	h5_rel
+pool1	pool1/outs/raw_feature_bc_matrix.h5
+pool2	pool2/outs/raw_feature_bc_matrix.h5
+pool3	pool3/outs/raw_feature_bc_matrix.h5
+pool4	pool4/outs/raw_feature_bc_matrix.h5

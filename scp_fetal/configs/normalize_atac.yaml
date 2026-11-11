@@ -1,0 +1,50 @@
+# Parameters for scripts/4.2_atac_normalize.py -- step 4.2: single-sample
+# ATAC normalize + UMAP (SnapATAC2 spectral embedding). NOT cross-sample/
+# replicate integration -- that's a future step.
+#
+# Design (compared the lab's own notebook -- prepare.peakcall.snapatac2.
+# ipynb, the ACTUAL normalize/dim-reduction notebook, not
+# 9.4.D12.atac.snapatac2.ipynb, which turned out to be peak-calling-by-
+# cluster only -- against the Galaxy/scverse SnapATAC2 tutorial as an
+# IGVF-UCSD stand-in, CellCommander had no concrete recipe to compare;
+# confirmed with the user at the one fork):
+#
+#   import_fragments -> add_tile_matrix -> select_features -> spectral ->
+#   umap -> knn -> leiden
+#
+# is the notebook's own backbone. This step does NOT redo the first three
+# stages -- 3.1's {sample}.atac_final.h5ad already carries the tile matrix
+# (.X) and var["selected"] forward from step 2.2, untouched (confirmed by
+# inspecting the real file: 4152 cells x 6,062,095 tile features,
+# var["selected"] = 49970 True). Re-parsing fragments here would just
+# redo work step 2.2 already did -- this step only recomputes
+# spectral->umap->knn->leiden, on the clean (doublet-removed,
+# barcode-intersected) population. 2.2 also computes this same
+# spectral/umap/leiden chain, but as a diagnostic on the PRE-doublet-
+# removal population -- that embedding rides along stale into
+# atac_final.h5ad; this step overwrites it (same obsm/obs key names, by
+# design -- not a bug) with one fit on the actual final cell set.
+#
+# Two deviations from the notebook's own bare defaults, both confirmed
+# with the user:
+#   - use_dims excludes spectral dim 0 for umap/knn (matches 2.2's own
+#     existing convention / IGVF-UCSD-style practice) -- the notebook's
+#     own calls use every dim including 0.
+#   - leiden's objective_function is set explicitly to "modularity" --
+#     Galaxy/scverse's own SnapATAC2 docs explicitly warn CPM gives
+#     poorly-separated clusters in the UMAP projection. NOTE: this
+#     pipeline's installed snapatac2 (2.8.0) already defaults to
+#     "modularity", so this doesn't change behavior here -- it documents
+#     the choice explicitly rather than leaving it implicit, in case a
+#     future snapatac2 version changes that default.
+
+random_state: 0        # matches 2.2_atac_qc.py's own random_state key (not RNA normalize's 1234 -- this step follows the ATAC track's own convention, not the notebook's RNA-side seed)
+
+n_comps: 30             # snap.tl.spectral's own default -- matches the notebook (no override there either)
+exclude_first_spectral_dim: true   # see design note above
+
+# --- clustering ---
+clustering_resolution: 1.0   # matches configs/atac_qc.yaml's own diagnostic clustering_resolution, for comparability with 2.2's (now-stale) diagnostic clusters
+n_neighbors: 50               # snap.pp.knn's own default -- matches the notebook
+
+save_diagnostic_plot: true

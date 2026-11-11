@@ -1,0 +1,113 @@
+# Parameters for scripts/2.2_atac_qc.py -- ATAC QC: feature space, general
+# QC thresholds, and doublet detection.
+#
+# Compared the lab's own notebook, IGVF-UCSD/CellCommander, and
+# sc-best-practices.org before choosing this design -- confirmed with the
+# user at each fork rather than assumed. Summary of what was decided and
+# why:
+#
+#   - Feature space: SnapATAC2's genome-wide tile matrix, built directly
+#     from fragments.tsv.gz -- NOT CellRanger's own called peaks (which
+#     the lab's own notebook and sc-best-practices both use). This is the
+#     one point where the user picked the minority-reference option
+#     (matches IGVF-UCSD/CellCommander only, not 2/3) -- a deliberate
+#     choice to not be biased toward whatever CellRanger already called
+#     as a peak.
+#   - General QC (min_tsse, fragment count bounds): SnapATAC2's own
+#     algorithm and thresholds, following IGVF-UCSD/CellCommander's
+#     validated recipe -- these don't transfer from the lab's/sc-best-
+#     practices' muon-based TSS/nucleosome-signal metrics, which are a
+#     different computation on a different feature space.
+#   - Doublet detection: THREE detectors, union --
+#       1. SnapATAC2's own built-in scrublet (ATAC-native, part of the
+#          adopted backbone's standard recipe)
+#       2. AMULET (fragment-coverage-based, ATAC-native; matches all
+#          three references). Run SEPARATELY by scripts/2.1_atac_amulet.py,
+#          not inline here -- AMULET is slow and its runtime doesn't
+#          depend on QC thresholds (it scans the whole raw fragment file
+#          regardless). The lab's own production job for this
+#          (jobs/templates/single_cell/batch_amulet.sb, calling
+#          software/python_scripts/run_Amulet.py) requests 3 days for a
+#          sequential loop over every sample -- confirming this needed to
+#          be decoupled, not folded into the same job as everything else.
+#          scripts/2.2_atac_qc.py reads its cached CSV output.
+#       3. scDblFinder with aggregateFeatures=TRUE (sc-best-practices'
+#          explicit fix for applying an RNA-simulation-based method to
+#          ATAC's sparsity -- NOT run on raw peaks/tiles directly, unlike
+#          the lab's own notebook)
+#     Generic scanpy Scrublet (what the lab's notebook and RNA QC use) is
+#     NOT used here -- SnapATAC2's own scrublet is a different, ATAC-
+#     adapted implementation, not the same tool.
+#   - scDblFinder's clusters= setting: FALSE (random-cell scoring), NOT
+#     TRUE as in sc-best-practices' own tutorial. Their text says cluster-
+#     based scoring is only recommended for well-separated discrete
+#     populations (their example: PBMCs) and NOT recommended when
+#     continuous trajectories are expected. This lab's data is a
+#     differentiation time-course -- continuous, not discrete -- so this
+#     pipeline deviates from the literal tutorial default on that basis.
+#
+# On MAD vs. fixed thresholds: considered and explicitly rejected for
+# general QC (min_tsse/fragment counts). All three references use fixed
+# thresholds here, not MAD -- unlike RNA QC. Reason: MAD assumes the bulk
+# of the distribution is one well-behaved population with rare tail
+# outliers, but ATAC QC here starts from the raw fragment file (only a
+# loose 500-fragment floor at import), where the empty-droplet/background
+# population is typically a whole second mode, not a small tail --
+# computing a median/MAD over that mixture can give a meaningless cutoff.
+# Instead: the numbers below are IGVF-UCSD's own validated defaults, NOT
+# yet checked against this lab's own data -- scripts/2.2_atac_qc.py writes
+# a mandatory {sample}.threshold_review.png (histograms + joint
+# scatter of fragment count vs. TSSe, with these exact threshold lines
+# drawn on top) BEFORE filtering, matching the lab's own notebook's
+# plot-then-decide workflow. Look at it per sample before trusting these
+# numbers, and edit the values below if the lines don't look right for a
+# given project's data.
+
+# --- SnapATAC2 import + general QC ---
+chrom_sizes: hg38          # snapatac2's built-in genome (snap.genome.hg38)
+min_load_num_fragments: 500 # loose pre-filter at import time, not the real QC threshold
+sorted_by_barcode: false
+chunk_size: 2000
+
+min_tsse: 5
+max_tsse: null              # the lab's own notebook used an upper TSSe bound too (implausibly high = artifact); off by default, matching IGVF-UCSD -- set explicitly per project if threshold_review.png shows a reason to
+min_num_fragments: 1000
+max_num_fragments: null    # was 100000 -- disabled after checking: across the 15
+                           # integration samples, only 2,991 of ~63,126 general-QC
+                           # removals (4.7%) were failing high_num_fragments alone
+                           # (see scripts/_check_tsse_frag_breakdown.py), a real but
+                           # modest recovery. Traded off against: unusually high
+                           # fragment count is a classic ATAC multiplet signal (two
+                           # nuclei/one droplet ~doubles fragment count), which is
+                           # specifically why this bound existed -- AMULET (already
+                           # in the doublet union) catches multiplets via a
+                           # different, overlapping signal, so there's some but not
+                           # complete redundant protection. Not yet rerun with this
+                           # change -- confirm the recovered cells look like real
+                           # cells (not a wall of doublets) before trusting this.
+
+# --- tile matrix + feature selection ---
+bin_size: 500
+num_features: 50000
+# BLACKLIST_BED is set in config.sh (account/genome-specific), not here
+
+# --- doublet detection ---
+amulet:
+  q_value_threshold: 0.05   # matches the lab's own notebook
+scdblfinder:
+  aggregate_features: true
+  n_features: 25             # sc-best-practices' own recommended value
+  processing: normFeatures
+  clusters: false            # see reasoning above -- continuous trajectory data
+random_state: 1
+
+# --- clustering / embedding (diagnostic only, not used by any later step) ---
+clustering_resolution: 1.0
+
+# --- gene activity matrix ---
+# Off by default -- this is a SnapATAC2 convenience output (gene-body
+# accessibility + MAGIC imputation), not something any of the three
+# references treats as a required QC output. Turn on per project if useful.
+build_gene_activity_matrix: false
+
+save_diagnostic_plot: true
