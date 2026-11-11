@@ -20,3 +20,10 @@ SC_ENV=/projects/hzhu10@xsede.org/software/anaconda/envs/single.cell # scanpy / 
 R_ENV=/projects/hzhu10@xsede.org/software/anaconda/envs/r_env        # DESeq2
 
 mkdir -p "$TE_OUT"
+
+# Replication data: human fetal pancreas, Olaniru et al. 2023 Cell Metab (GSE197064), on scratch only
+FETAL_OUT=/scratch/alpine/hzhu10@xsede.org/fetal_pancreas/olaniru2023
+CELLRANGER=/projects/hzhu10@xsede.org/software/cellranger-9.0.1/cellranger
+FETAL_ROOT=/scratch/alpine/hzhu10@xsede.org/fetal_pancreas       # all fetal datasets + the atlas (scratch only)
+MIGL_OUT=/scratch/alpine/hzhu10@xsede.org/fetal_pancreas/migliorini2024  # Migliorini 2024 snRNA (GSE230403)
+SRA_ENV=/projects/hzhu10@xsede.org/software/anaconda/envs/cml-env # sra-tools 3.4.1 (prefetch, fasterq-dump)
