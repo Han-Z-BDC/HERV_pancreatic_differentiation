@@ -41,6 +41,7 @@ specific cell types during SC-islet differentiation? Data: the diff-multiome 10x
 | candidate tiers (RNA x read-through x ATAC; genome-derived int-LTR pairs) | `14_candidate_tiers.py` | `$TE_OUT/qc/candidate_tiers_{group,stage}.csv`, `erv_int_ltr_pairs.csv` |
 | ZNF808 / MER11 check | `17_znf808_mer11.py` / `.sb` | `$TE_OUT/qc/znf808_mer11*` |
 | progress report (HTML, all scripts embedded) | `docs/build_report.py` + `docs/report_template.html` | `docs/HERV_progress_report.html` |
+| full result explorer (HTML, interactive) | `scripts/23_build_explorer.py` + `docs/explorer_template.html` | `docs/HERV_explorer.html` |
 
 DESeq2 design: `~ group` (sample x group pseudobulks as replicates); size factors from library size
 (gene UMIs / all cut sites). Sample blocking is NOT used because early cell types come from a single

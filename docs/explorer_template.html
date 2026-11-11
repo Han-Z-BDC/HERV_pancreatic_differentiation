@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HERV/TE Candidate Explorer</title>
+<style>
+:root{
+  --bg:#ffffff; --bg2:#f6f7f9; --bg3:#eceef2; --fg:#16181d; --fg2:#5b6472; --fg3:#8b94a3;
+  --bd:#dcdfe6; --bd2:#c3c8d2; --accent:#2f5fd0; --accent2:#e8eefc;
+  --up:#c0392b; --dn:#1f6fb2; --warn:#b26a00; --ok:#1d7a43;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#13151a; --bg2:#1a1d24; --bg3:#232733; --fg:#e6e9ef; --fg2:#a2abba; --fg3:#737d8c;
+    --bd:#2d323d; --bd2:#3d4452; --accent:#6f9bf0; --accent2:#1e2940;
+    --up:#e8705f; --dn:#5aa8e0; --warn:#e0a44a; --ok:#4fc07a;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#13151a; --bg2:#1a1d24; --bg3:#232733; --fg:#e6e9ef; --fg2:#a2abba; --fg3:#737d8c;
+  --bd:#2d323d; --bd2:#3d4452; --accent:#6f9bf0; --accent2:#1e2940;
+  --up:#e8705f; --dn:#5aa8e0; --warn:#e0a44a; --ok:#4fc07a;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.92em}
+
+/* ---------- top bar ---------- */
+header{position:sticky;top:0;z-index:40;background:var(--bg);border-bottom:1px solid var(--bd);padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header h1{margin:0;font-size:15px;font-weight:650;letter-spacing:-.01em;white-space:nowrap}
+header .sub{color:var(--fg3);font-size:12px;white-space:nowrap}
+.views{display:flex;gap:2px;background:var(--bg3);border-radius:7px;padding:2px}
+.views button{border:0;background:transparent;color:var(--fg2);font:inherit;font-size:12.5px;padding:5px 11px;border-radius:5px;cursor:pointer}
+.views button.on{background:var(--bg);color:var(--fg);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.1)}
+.spacer{flex:1}
+#themeBtn{border:1px solid var(--bd);background:var(--bg2);color:var(--fg2);border-radius:6px;padding:5px 9px;cursor:pointer;font-size:12px}
+
+/* ---------- layout ---------- */
+main{display:flex;min-height:calc(100vh - 49px)}
+#side{width:290px;flex:0 0 290px;border-right:1px solid var(--bd);background:var(--bg2);display:flex;flex-direction:column;position:sticky;top:49px;height:calc(100vh - 49px)}
+#detail{flex:1;min-width:0;padding:18px 22px 60px}
+.pane{display:none}
+.pane.on{display:block}
+
+/* ---------- sidebar ---------- */
+.sbox{padding:10px;border-bottom:1px solid var(--bd);display:flex;flex-direction:column;gap:8px}
+#q{width:100%;padding:7px 9px;border:1px solid var(--bd2);border-radius:6px;background:var(--bg);color:var(--fg);font:inherit;font-size:13px}
+#q:focus{outline:2px solid var(--accent2);border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{border:1px solid var(--bd2);background:var(--bg);color:var(--fg2);border-radius:20px;padding:3px 9px;font-size:11.5px;cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.selrow{display:flex;gap:6px;align-items:center}
+.selrow select{flex:1;min-width:0;padding:5px 6px;border:1px solid var(--bd2);border-radius:6px;background:var(--bg);color:var(--fg);font:inherit;font-size:12px}
+#count{padding:6px 12px;font-size:11.5px;color:var(--fg3);border-bottom:1px solid var(--bd);background:var(--bg2)}
+#list{overflow-y:auto;flex:1}
+.item{padding:7px 12px;border-bottom:1px solid var(--bd);cursor:pointer;display:flex;align-items:center;gap:7px}
+.item:hover{background:var(--bg3)}
+.item.on{background:var(--accent2);box-shadow:inset 3px 0 0 var(--accent)}
+.item .nm{font-family:var(--mono);font-size:12.5px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .fm{font-size:10.5px;color:var(--fg3);white-space:nowrap}
+.badge{font-size:9.5px;font-weight:700;padding:1.5px 5px;border-radius:4px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap}
+.b-robust{background:rgba(29,122,67,.16);color:var(--ok)}
+.b-discordant{background:rgba(178,106,0,.16);color:var(--warn)}
+.b-none{background:var(--bg3);color:var(--fg3)}
+
+/* ---------- detail ---------- */
+.fhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.fhead h2{margin:0;font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:-.02em}
+.fhead .tag{font-size:11.5px;color:var(--fg2);background:var(--bg3);padding:2.5px 8px;border-radius:5px}
+.facts{color:var(--fg2);font-size:12.5px;margin:6px 0 16px;line-height:1.7}
+.facts b{color:var(--fg);font-weight:600}
+.tabs{display:flex;gap:1px;border-bottom:1px solid var(--bd);margin-bottom:16px}
+.tabs button{border:0;border-bottom:2px solid transparent;background:transparent;color:var(--fg2);font:inherit;font-size:13px;padding:8px 13px;cursor:pointer;margin-bottom:-1px}
+.tabs button.on{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+.tabs button:hover:not(.on){color:var(--fg)}
+h3{font-size:13px;font-weight:650;margin:22px 0 8px;letter-spacing:.01em}
+h3:first-child{margin-top:0}
+.note{font-size:12px;color:var(--fg3);margin:-4px 0 10px;max-width:70ch}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;border:1px solid var(--bd);border-radius:7px;background:var(--bg2)}
+table{border-collapse:collapse;width:100%;font-size:12.5px}
+th,td{padding:5px 9px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--bd)}
+th{background:var(--bg3);font-weight:600;font-size:11px;color:var(--fg2);text-transform:uppercase;letter-spacing:.04em;position:sticky;top:0}
+th.srt{cursor:pointer;user-select:none}
+th.srt:hover{color:var(--fg)}
+td:first-child,th:first-child,.lf{text-align:left}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:var(--bg3)}
+td.mono{font-family:var(--mono)}
+.up{color:var(--up);font-weight:600}
+.dn{color:var(--dn)}
+.sig{font-weight:700}
+.nsg{opacity:.45}
+.na{color:var(--fg3)}
+.grp{font-family:var(--mono);font-size:11.5px}
+tr.cand{background:rgba(47,95,208,.05)}
+
+/* ---------- heatmap ---------- */
+.hmwrap{overflow-x:auto;border:1px solid var(--bd);border-radius:7px;background:var(--bg2);padding:10px}
+.hm{border-collapse:separate;border-spacing:2px;font-size:11px}
+.hm th{background:transparent;position:static;text-transform:none;letter-spacing:0;padding:2px 4px;font-size:10.5px}
+.hm th.gl{writing-mode:vertical-rl;transform:rotate(180deg);height:78px;vertical-align:bottom;text-align:left;font-family:var(--mono);color:var(--fg2);font-weight:500;padding:0 1px}
+.hm th.ml{text-align:right;padding-right:8px;font-weight:600;color:var(--fg);border:0}
+.hm td{padding:0;border:0;width:22px;height:22px;text-align:center;border-radius:3px;font-family:var(--mono);font-size:9.5px;font-weight:600;position:relative;cursor:default}
+.hm td.nd{background:var(--bg3);color:var(--fg3)}
+.hm td.s::after{content:"";position:absolute;inset:0;border:1.5px solid rgba(0,0,0,.55);border-radius:3px;pointer-events:none}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .hm td.s::after{border-color:rgba(255,255,255,.75)}}
+:root[data-theme="dark"] .hm td.s::after{border-color:rgba(255,255,255,.75)}
+.hm tr.sep td,.hm tr.sep th{height:7px}
+.legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--fg2);margin-top:10px}
+.scale{display:flex;align-items:center;gap:4px}
+.scale i{width:17px;height:13px;border-radius:2px;display:inline-block}
+
+/* ---------- bars / spark ---------- */
+.spark{display:block;width:100%;height:auto;max-width:980px}
+svg text{fill:var(--fg2);font-family:var(--sans)}
+svg .ax{stroke:var(--bd2)}
+svg .gl{stroke:var(--bd);stroke-dasharray:2 3}
+
+/* ---------- misc ---------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px;margin-bottom:6px}
+.card{border:1px solid var(--bd);border-radius:7px;padding:9px 11px;background:var(--bg2)}
+.card .k{font-size:10.5px;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em}
+.card .v{font-size:19px;font-weight:650;font-family:var(--mono);margin-top:2px;letter-spacing:-.02em}
+.card .d{font-size:11px;color:var(--fg3);margin-top:1px}
+.empty{color:var(--fg3);font-size:13px;padding:28px 0;text-align:center;font-style:italic}
+details{border:1px solid var(--bd);border-radius:7px;padding:9px 12px;background:var(--bg2);margin:10px 0}
+summary{cursor:pointer;font-weight:600;font-size:12.5px;color:var(--fg2)}
+summary:hover{color:var(--fg)}
+details>div,details>p{margin-top:9px;font-size:12.5px;color:var(--fg2);line-height:1.65}
+.pill{display:inline-block;font-size:10.5px;font-weight:700;padding:1.5px 6px;border-radius:4px;background:var(--bg3);color:var(--fg2);font-family:var(--mono)}
+.v-intergenic{background:rgba(29,122,67,.16);color:var(--ok)}
+.v-weak{background:rgba(178,106,0,.14);color:var(--warn)}
+.v-intronic_only,.v-no_intergenic{background:rgba(192,57,43,.14);color:var(--up)}
+.hint{font-size:11.5px;color:var(--fg3);margin-top:7px}
+.kbd{font-family:var(--mono);font-size:11px;background:var(--bg3);border:1px solid var(--bd);border-radius:4px;padding:1px 5px}
+.prose{max-width:80ch;font-size:13.5px;line-height:1.7;color:var(--fg2)}
+.prose h3{color:var(--fg);margin-top:26px}
+.prose b{color:var(--fg)}
+.prose ul{padding-left:20px}
+.prose li{margin:5px 0}
+.ctx-intergenic{color:var(--ok)}
+.ctx-intronic{color:var(--warn)}
+.ctx-exonic{color:var(--up)}
+@media(max-width:880px){
+  main{flex-direction:column}
+  #side{width:100%;flex:none;position:static;height:auto;max-height:310px;border-right:0;border-bottom:1px solid var(--bd)}
+  #detail{padding:14px 16px 50px}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>HERV / TE Candidate Explorer</h1>
+  <span class="sub" id="hsub"></span>
+  <div class="views">
+    <button data-v="browse" class="on">Browse families</button>
+    <button data-v="all">All results</button>
+    <button data-v="help">How to read</button>
+  </div>
+  <div class="spacer"></div>
+  <a href="HERV_progress_report.html" style="font-size:12.5px;white-space:nowrap">Narrative report &rarr;</a>
+  <button id="themeBtn">Theme</button>
+</header>
+
+<main>
+<aside id="side">
+  <div class="sbox">
+    <input id="q" type="search" placeholder="Search subfamily, family or class…" autocomplete="off">
+    <div class="chips" id="tierChips">
+      <button class="chip on" data-t="any">All</button>
+      <button class="chip" data-t="robust">Robust</button>
+      <button class="chip" data-t="discordant">Discordant</button>
+      <button class="chip" data-t="cand">Any candidate</button>
+      <button class="chip" data-t="none">Non-candidate</button>
+    </div>
+    <div class="selrow">
+      <select id="fLevel"><option value="">any group / stage</option></select>
+      <select id="fClass"><option value="">any class</option></select>
+    </div>
+  </div>
+  <div id="count"></div>
+  <div id="list"></div>
+</aside>
+
+<section id="detail">
+  <div class="pane on" id="p-browse"></div>
+  <div class="pane" id="p-all"></div>
+  <div class="pane" id="p-help"></div>
+</section>
+</main>
+
+<script>
+const D = __DATA__;
+
+/* ===================== helpers ===================== */
+const $ = s => document.querySelector(s);
+const el = (t,a,...k)=>{const n=document.createElement(t);if(a)for(const[x,v]of Object.entries(a)){if(x=='cls')n.className=v;else if(x=='html')n.innerHTML=v;else if(x=='txt')n.textContent=v;else n.setAttribute(x,v)}for(const c of k.flat())if(c!=null)n.append(c);return n};
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function fmtL(v){ return v==null?'–':(v>0?'+':'')+v.toFixed(2); }
+function fmtP(p){
+  if(p==null) return '–';
+  if(p===0) return '0';
+  if(p>=0.01) return p.toFixed(3);
+  const e=Math.floor(Math.log10(p));
+  return (p/Math.pow(10,e)).toFixed(1)+'e'+e;
+}
+function lfcCell(v,p){
+  if(v==null) return '<td class="na">–</td>';
+  const sig = p!=null && p<0.05;
+  return `<td class="mono ${v>0?'up':'dn'} ${sig?'sig':'nsg'}" title="padj = ${fmtP(p)}">${fmtL(v)}</td>`;
+}
+// diverging scale, clamp +/-3
+function hmColor(v){
+  if(v==null) return null;
+  const t=Math.max(-1,Math.min(1,v/3));
+  if(t>=0){ // white -> red
+    const a=t; return `rgb(${255-Math.round(a*60)},${255-Math.round(a*200)},${255-Math.round(a*205)})`;
+  } else { const a=-t; return `rgb(${255-Math.round(a*215)},${255-Math.round(a*150)},${255-Math.round(a*35)})`; }
+}
+const GN = D.groups, SN = D.stages;
+const lvlName = lt => lt=='g' ? GN : SN;
+
+/* ===================== index ===================== */
+// tiers: {g:{fam:{level:row}}, s:{...}}
+const tierOf = (fam,lt,lv)=> (D.tiers[lt][fam]||{})[lv];
+function famTiers(fam){
+  const out=[];
+  for(const lt of ['g','s']) for(const[lv,r]of Object.entries(D.tiers[lt][fam]||{})) out.push({lt,lv,...r});
+  return out;
+}
+function bestTier(fam){
+  const t=famTiers(fam);
+  if(!t.length) return null;
+  return t.some(x=>x.tier=='robust')?'robust':'discordant';
+}
+const FAMS = D.fam.slice().sort((a,b)=>{
+  const ra={robust:0,discordant:1,null:2}[bestTier(a)], rb={robust:0,discordant:1,null:2}[bestTier(b)];
+  if(ra!=rb) return ra-rb;
+  return a.localeCompare(b);
+});
+
+/* ===================== sidebar ===================== */
+let FILT={q:'',tier:'any',level:'',cls:''}, CUR=null, TAB='overview';
+
+(function initSelects(){
+  const lsel=$('#fLevel');
+  lsel.append(el('optgroup',{label:'cell groups'},GN.map(g=>el('option',{value:'g:'+g,txt:g}))));
+  lsel.append(el('optgroup',{label:'stages'},SN.map(s=>el('option',{value:'s:'+s,txt:s}))));
+  const cls=[...new Set(D.fam.map(f=>D.meta[f]&&D.meta[f].c).filter(Boolean))].sort();
+  $('#fClass').append(cls.map(c=>el('option',{value:c,txt:c})));
+})();
+
+function passes(fam){
+  const m=D.meta[fam]||{};
+  if(FILT.cls && m.c!=FILT.cls) return false;
+  if(FILT.q){
+    const q=FILT.q.toLowerCase();
+    if(!(fam.toLowerCase().includes(q)||(m.f||'').toLowerCase().includes(q)||(m.c||'').toLowerCase().includes(q))) return false;
+  }
+  let ts=famTiers(fam);
+  if(FILT.level){ const[lt,lv]=FILT.level.split(':'); ts=ts.filter(t=>t.lt==lt&&t.lv==lv); }
+  if(FILT.tier=='robust') return ts.some(t=>t.tier=='robust');
+  if(FILT.tier=='discordant') return ts.some(t=>t.tier=='discordant');
+  if(FILT.tier=='cand') return ts.length>0;
+  if(FILT.tier=='none') return ts.length==0;
+  return true;
+}
+
+function renderList(){
+  const keep=FAMS.filter(passes);
+  $('#count').textContent = `${keep.length} subfamil${keep.length==1?'y':'ies'}`
+    + (keep.length!=FAMS.length?` of ${FAMS.length}`:'');
+  const box=$('#list'); box.textContent='';
+  const frag=document.createDocumentFragment();
+  for(const f of keep.slice(0,600)){
+    const m=D.meta[f]||{}, bt=bestTier(f);
+    const it=el('div',{cls:'item'+(f==CUR?' on':''),'data-f':f},
+      el('span',{cls:'nm',txt:f}),
+      el('span',{cls:'fm',txt:m.f||''}),
+      el('span',{cls:'badge b-'+(bt||'none'),txt:bt?bt.slice(0,4):'—'}));
+    frag.append(it);
+  }
+  box.append(frag);
+  if(keep.length>600) box.append(el('div',{cls:'hint',style:'padding:8px 12px',txt:`showing first 600 — narrow the search`}));
+}
+$('#list').addEventListener('click',e=>{const i=e.target.closest('.item');if(i)select(i.dataset.f)});
+$('#q').addEventListener('input',e=>{FILT.q=e.target.value;renderList()});
+$('#tierChips').addEventListener('click',e=>{
+  const b=e.target.closest('.chip'); if(!b)return;
+  [...$('#tierChips').children].forEach(c=>c.classList.toggle('on',c==b));
+  FILT.tier=b.dataset.t; renderList();
+});
+$('#fLevel').addEventListener('change',e=>{FILT.level=e.target.value;renderList();if(CUR)select(CUR,TAB)});
+$('#fClass').addEventListener('change',e=>{FILT.cls=e.target.value;renderList()});
+
+/* ===================== heatmap ===================== */
+function heatmap(fam,lt){
+  const names=lvlName(lt);
+  const rna=(D.rna[lt][fam])||null, atac=(D.atac[lt][fam])||null;
+  const rows=[
+    {k:'IRescue (RNA)',  get:i=>rna?[rna[i][0],rna[i][1]]:null},
+    {k:'scTE exclusive', get:i=>rna?[rna[i][2],rna[i][3]]:null},
+    {k:'scTE nointron',  get:i=>rna?[rna[i][4],rna[i][5]]:null},
+    {sep:1},
+    {k:'Tn5 cut sites (ATAC)', get:i=>atac?[atac[i][0],atac[i][1]]:null},
+    {k:'scTEATAC',             get:i=>atac?[atac[i][2],atac[i][3]]:null},
+  ];
+  const tb=el('table',{cls:'hm'});
+  const hr=el('tr',{},el('th',{cls:'ml'}));
+  names.forEach(n=>hr.append(el('th',{cls:'gl',txt:n})));
+  tb.append(el('thead',{},hr));
+  const body=el('tbody');
+  for(const r of rows){
+    if(r.sep){ body.append(el('tr',{cls:'sep'},el('td',{colspan:names.length+1}))); continue; }
+    const tr=el('tr',{},el('th',{cls:'ml',txt:r.k}));
+    names.forEach((n,i)=>{
+      const d=r.get(i);
+      if(!d||d[0]==null){ tr.append(el('td',{cls:'nd',title:n+': no data',txt:''})); return; }
+      const [v,p]=d, c=hmColor(v), sig=p!=null&&p<0.05;
+      const td=el('td',{cls:sig?'s':'',style:`background:${c};color:${Math.abs(v)>1.6?'#fff':'#16181d'}`,
+        title:`${n}\n${r.k}\nlog2FC ${fmtL(v)}  padj ${fmtP(p)}`,txt:Math.abs(v)>=0.5?v.toFixed(1):''});
+      tr.append(td);
+    });
+    body.append(tr);
+  }
+  tb.append(body);
+  const leg=el('div',{cls:'legend'},
+    el('span',{cls:'scale'},el('span',{txt:'log2FC −3'}),
+      [-3,-2,-1,0,1,2,3].map(v=>el('i',{style:`background:${hmColor(v)}`})),el('span',{txt:'+3'})),
+    el('span',{html:'<span style="display:inline-block;width:14px;height:11px;border:1.5px solid currentColor;border-radius:2px;vertical-align:-1px"></span> padj &lt; 0.05'}),
+    el('span',{html:'<span style="display:inline-block;width:14px;height:11px;background:var(--bg3);border-radius:2px;vertical-align:-1px"></span> not tested'}));
+  return el('div',{},el('div',{cls:'hmwrap'},tb),leg);
+}
+
+/* ===================== bar chart (CPM trend) ===================== */
+function barChart(vals,names,opt={}){
+  const W=960,H=opt.h||150,ml=52,mr=8,mt=10,mb=opt.mb||66;
+  const n=vals.length, iw=W-ml-mr, bw=iw/n;
+  const fin=vals.filter(v=>v!=null&&isFinite(v));
+  if(!fin.length) return el('div',{cls:'empty',txt:'no data'});
+  let lo=Math.min(0,...fin), hi=Math.max(0,...fin);
+  if(hi==lo) hi=lo+1;
+  const pad=(hi-lo)*0.08; hi+=pad; if(lo<0) lo-=pad;
+  const y=v=>mt+(H-mt-mb)*(1-(v-lo)/(hi-lo));
+  const ns='http://www.w3.org/2000/svg';
+  const S=(t,a)=>{const e=document.createElementNS(ns,t);for(const[k,v]of Object.entries(a||{}))e.setAttribute(k,v);return e};
+  const svg=S('svg',{viewBox:`0 0 ${W} ${H}`,cls:'spark',preserveAspectRatio:'xMinYMid meet'});
+  // ticks
+  const nt=4;
+  for(let i=0;i<=nt;i++){
+    const v=lo+(hi-lo)*i/nt;
+    const g=S('line',{x1:ml,x2:W-mr,y1:y(v),y2:y(v),cls:v===0?'ax':'gl'}); svg.append(g);
+    const t=S('text',{x:ml-6,y:y(v)+3.5,'text-anchor':'end','font-size':10}); t.textContent=Math.abs(v)>=100?v.toFixed(0):v.toFixed(Math.abs(hi-lo)<2?2:1); svg.append(t);
+  }
+  if(opt.ylab){const t=S('text',{x:4,y:mt+8,'font-size':10,'font-weight':600});t.textContent=opt.ylab;svg.append(t)}
+  vals.forEach((v,i)=>{
+    const x=ml+bw*i+bw*0.14, w=bw*0.72;
+    if(v!=null&&isFinite(v)){
+      const y0=y(Math.max(0,Math.min(v,0))), y1=y(v), top=Math.min(y0,y1), h=Math.max(1,Math.abs(y1-y0));
+      const col = opt.color ? opt.color(v,i) : (v>=0?'var(--up)':'var(--dn)');
+      svg.append(S('rect',{x,y:top,width:w,height:h,fill:col,rx:1.5,opacity:opt.op?opt.op(v,i):1}));
+    }
+    const t=S('text',{x:ml+bw*i+bw/2,y:H-mb+12,'font-size':9.5,'text-anchor':'end',
+      transform:`rotate(-55 ${ml+bw*i+bw/2} ${H-mb+12})`,'font-family':'var(--mono)'});
+    t.textContent=names[i]; svg.append(t);
+  });
+  svg.append(S('line',{x1:ml,x2:W-mr,y1:y(0),y2:y(0),cls:'ax'}));
+  return svg;
+}
+
+/* ===================== tabs ===================== */
+function tabOverview(fam){
+  const box=el('div');
+  const tg=famTiers(fam);
+  // cards
+  const m=D.meta[fam]||{};
+  const nG=tg.filter(t=>t.lt=='g').length, nS=tg.filter(t=>t.lt=='s').length;
+  const rob=tg.filter(t=>t.tier=='robust');
+  const atac=tg.filter(t=>t.at===1);
+  box.append(el('div',{cls:'cards'},
+    el('div',{cls:'card'},el('div',{cls:'k',txt:'candidate calls'}),el('div',{cls:'v',txt:String(tg.length)}),
+      el('div',{cls:'d',txt:`${nG} group · ${nS} stage`})),
+    el('div',{cls:'card'},el('div',{cls:'k',txt:'robust'}),el('div',{cls:'v',txt:String(rob.length)}),
+      el('div',{cls:'d',txt:rob.length?rob.map(t=>t.lv).join(', ').slice(0,42):'none'})),
+    el('div',{cls:'card'},el('div',{cls:'k',txt:'ATAC-supported'}),el('div',{cls:'v',txt:String(atac.length)}),
+      el('div',{cls:'d',txt:atac.length?[...new Set(atac.map(t=>t.af))].join(', ').slice(0,42):'—'})),
+    el('div',{cls:'card'},el('div',{cls:'k',txt:'cut sites / fragments'}),
+      el('div',{cls:'v',txt:m.cut?(m.cut/1e3).toFixed(0)+'k':'–'}),
+      el('div',{cls:'d',txt:m.sct?`scTEATAC ${(m.sct/1e3).toFixed(0)}k (${m.rt?m.rt.toFixed(1):'?'}×)`:'—'}))));
+
+  if(!tg.length) box.append(el('p',{cls:'note',txt:'This subfamily was never called as a candidate in any group or stage. The RNA and ATAC tabs still show its full per-group statistics.'}));
+
+  // tier call table
+  if(tg.length){
+    box.append(el('h3',{txt:'Candidate calls'}));
+    box.append(el('p',{cls:'note',html:'One row per group/stage where this subfamily was called. <b>verdict</b> and <b>frac ratio</b> come from the scTE exclusive-vs-nointron read-through test; <b>frac ratio</b> &gt; 1 means the called group has a <i>higher</i> share of intergenic TE reads than the rest, i.e. the signal is not just host-gene read-through.'}));
+    const rows=tg.map(t=>`<tr class="cand">
+      <td class="lf grp">${esc(t.lv)}</td>
+      <td class="lf"><span class="badge b-${t.tier}">${t.tier}</span></td>
+      <td class="lf" style="font-size:11.5px">${esc(t.rs||'')}</td>
+      ${lfcCell(t.ir,t.pir)}${lfcCell(t.ex,t.pex)}${lfcCell(t.no,t.pno)}
+      <td class="lf"><span class="pill v-${t.vd||''}">${esc(t.vd||'–')}</span></td>
+      <td class="mono">${t.fr==null?'–':t.fr.toFixed(2)}</td>
+      ${lfcCell(t.ac,null)}${lfcCell(t.as,null)}
+      <td class="lf mono" style="font-size:11px">${esc(t.af||'')}</td>
+      <td class="mono">${t.gc==null?'–':t.gc.toLocaleString()}${t.sg?' <span title="small group" class="na">!</span>':''}</td></tr>`).join('');
+    box.append(el('div',{cls:'tw',html:`<table><thead><tr>
+      <th class="lf">group / stage</th><th class="lf">tier</th><th class="lf">reasons</th>
+      <th>IRescue</th><th>scTE excl</th><th>scTE noint</th>
+      <th class="lf">verdict</th><th>frac ratio</th>
+      <th>ATAC cut</th><th>ATAC scTE</th><th class="lf">ATAC feature</th><th>cells</th>
+      </tr></thead><tbody>${rows}</tbody></table>`}));
+  }
+
+  // paired LTRs / family facts
+  const pl=[...new Set(tg.map(t=>t.pl).filter(Boolean))].join(', ');
+  const det=el('details',{},el('summary',{txt:'Annotation & pairing'}));
+  det.append(el('div',{html:`
+    <b>Repeat family:</b> ${esc(m.f||'–')} &nbsp;·&nbsp; <b>class:</b> ${esc(m.c||'–')}<br>
+    ${pl?`<b>Genome-derived partner LTR(s):</b> <span class="mono">${esc(pl)}</span> — found by taking the ≤50 bp flanks of every copy of this element and keeping LTRs present at ≥15% of ≥20 flanks.<br>`:''}
+    ${D.pairs[fam]?`<b>Pairing evidence:</b> ${D.pairs[fam].map(p=>`${esc(p[0])} (${p[1]} flanks, ${(p[2]*100).toFixed(0)}%)`).join('; ')}<br>`:''}
+    <b>Total ATAC signal:</b> ${m.cut?m.cut.toLocaleString()+' Tn5 cut sites':'–'}${m.sct?` vs ${m.sct.toLocaleString()} scTEATAC fragments`:''}
+  `}));
+  box.append(det);
+  return box;
+}
+
+function tabRNA(fam){
+  const box=el('div');
+  for(const L of ['g','s']){
+    const names=lvlName(L), rna=D.rna[L][fam];
+    box.append(el('h3',{txt:L=='g'?'Per cell group (24 groups)':'Per differentiation stage (8 timepoints)'}));
+    if(!rna){ box.append(el('div',{cls:'empty',txt:'no RNA data for this subfamily'})); continue; }
+    if(L=='g') box.append(el('p',{cls:'note',html:'Three independent RNA quantifications of the same cells. <b>IRescue</b> = UMI-aware EM over subfamilies. <b>scTE exclusive</b> = TE reads not overlapping a gene exon. <b>scTE nointron</b> = TE reads outside gene bodies entirely, so agreement here is the strongest evidence the ERV is transcribed in its own right rather than carried by a host transcript.'}));
+    // table
+    const rows=names.map((n,i)=>{
+      const r=rna[i], t=tierOf(fam,L,n);
+      const cpm=(D.cpm[L][fam]||[])[i], igf=(L=='g'?(D.igf[fam]||[]):[])[i];
+      return `<tr class="${t?'cand':''}">
+        <td class="lf grp">${esc(n)}${t?` <span class="badge b-${t.tier}">${t.tier.slice(0,4)}</span>`:''}</td>
+        ${lfcCell(r[0],r[1])}<td class="mono na" style="font-size:11px">${fmtP(r[1])}</td>
+        ${lfcCell(r[2],r[3])}<td class="mono na" style="font-size:11px">${fmtP(r[3])}</td>
+        ${lfcCell(r[4],r[5])}<td class="mono na" style="font-size:11px">${fmtP(r[5])}</td>
+        <td class="mono">${r[6]==null?'–':r[6].toFixed(2)}</td>
+        <td class="lf"><span class="pill v-${r[7]||''}">${esc(r[7]||'–')}</span></td>
+        <td class="mono">${cpm==null?'–':cpm.toFixed(1)}</td>
+        ${L=='g'?`<td class="mono">${igf==null?'–':(igf*100).toFixed(0)+'%'}</td>`:''}
+      </tr>`;}).join('');
+    box.append(el('div',{cls:'tw',html:`<table><thead><tr>
+      <th class="lf">${L=='g'?'cell group':'stage'}</th>
+      <th>IRescue<br>log2FC</th><th>padj</th>
+      <th>scTE excl<br>log2FC</th><th>padj</th>
+      <th>scTE noint<br>log2FC</th><th>padj</th>
+      <th>frac<br>ratio</th><th class="lf">verdict</th><th>CPM</th>${L=='g'?'<th>intergenic<br>share</th>':''}
+      </tr></thead><tbody>${rows}</tbody></table>`}));
+    // charts
+    const cpm=D.cpm[L][fam];
+    if(cpm){
+      box.append(el('h3',{txt:'Expression level across development (IRescue CPM)'}));
+      box.append(el('p',{cls:'note',txt:'Absolute pseudobulk CPM — unlike the log2FC columns this does not depend on a contrast, so it shows the actual developmental trajectory of the subfamily.'}));
+      box.append(barChart(cpm,names,{ylab:'CPM',color:()=> 'var(--accent)'}));
+    }
+    box.append(el('h3',{txt:'log2FC by method'}));
+    box.append(heatmap(fam,L));
+  }
+  return box;
+}
+
+function tabATAC(fam){
+  const box=el('div');
+  for(const L of ['g','s']){
+    const names=lvlName(L), a=D.atac[L][fam];
+    box.append(el('h3',{txt:L=='g'?'Per cell group (24 groups)':'Per differentiation stage (8 timepoints)'}));
+    if(!a){ box.append(el('div',{cls:'empty',txt:'no ATAC data for this subfamily'})); continue; }
+    if(L=='g') box.append(el('p',{cls:'note',html:'Two independent ATAC quantifications. <b>Tn5 cut sites</b> counts only the two base pairs each fragment actually cut (fragment start and end−1) inside the TE — the precise measure of accessibility. <b>scTEATAC</b> counts whole fragment spans, so a fragment merely overlapping a TE counts; it is more sensitive but blurs resolution. Agreement between the two is what the <code>agreement</code> column records.'}));
+    const rows=names.map((n,i)=>{
+      const r=a[i], t=tierOf(fam,L,n);
+      return `<tr class="${t?'cand':''}">
+        <td class="lf grp">${esc(n)}${t?` <span class="badge b-${t.tier}">${t.tier.slice(0,4)}</span>`:''}</td>
+        ${lfcCell(r[0],r[1])}<td class="mono na" style="font-size:11px">${fmtP(r[1])}</td>
+        ${lfcCell(r[2],r[3])}<td class="mono na" style="font-size:11px">${fmtP(r[3])}</td>
+        <td class="lf"><span class="pill">${esc(r[4]||'–')}</span></td></tr>`;}).join('');
+    box.append(el('div',{cls:'tw',html:`<table><thead><tr>
+      <th class="lf">${L=='g'?'cell group':'stage'}</th>
+      <th>Tn5 cut sites<br>log2FC</th><th>padj</th>
+      <th>scTEATAC<br>log2FC</th><th>padj</th><th class="lf">agreement</th>
+      </tr></thead><tbody>${rows}</tbody></table>`}));
+    box.append(el('h3',{txt:'log2FC by method (RNA rows shown for comparison)'}));
+    box.append(heatmap(fam,L));
+  }
+  // partner LTR cross-reference
+  const partners=new Set();
+  famTiers(fam).forEach(t=>{ if(t.pl) t.pl.split(/[,;]\s*/).forEach(x=>x&&partners.add(x)); if(t.af) partners.add(t.af); });
+  (D.pairs[fam]||[]).forEach(p=>partners.add(p[0]));
+  const ps=[...partners].filter(p=>p!=fam&&D.atac.g[p]);
+  if(ps.length){
+    box.append(el('h3',{txt:'Accessibility of the partner LTR(s)'}));
+    box.append(el('p',{cls:'note',txt:'An internal ERV body is usually not where the regulatory activity sits — the flanking LTR is. These are the same ATAC contrasts for the LTR subfamilies paired with this element.'}));
+    for(const p of ps){
+      box.append(el('div',{style:'margin:8px 0 2px;font-family:var(--mono);font-size:12.5px;font-weight:600'},
+        el('a',{href:'#'+encodeURIComponent(p),txt:p})));
+      box.append(heatmap(p,'g'));
+    }
+  }
+  return box;
+}
+
+function tabLoci(fam){
+  const box=el('div');
+  const keys=Object.keys(D.loci).filter(k=>k.startsWith(fam+'|'));
+  if(!keys.length){
+    box.append(el('div',{cls:'empty',txt:'No per-locus analysis for this subfamily — locus-level IRescue was run only for called candidates.'}));
+    return box;
+  }
+  box.append(el('p',{cls:'note',html:'Locus-level IRescue (<code>-l</code>) assigns UMIs to individual genomic copies. <b>share of increase</b> is the fraction of the subfamily‑level CPM increase in that group contributed by this one copy — if one copy carries most of it, the subfamily call is really a single-locus event. <b>context</b> and <b>host gene</b> say whether the copy sits inside a gene, and <b>orientation</b> whether it is sense or antisense to it: an antisense copy inside an intron cannot be explained by ordinary host pre-mRNA read-through.'}));
+  for(const k of keys){
+    const lv=k.split('|')[1], L=k.split('|')[2], rows=D.loci[k], sm=D.lsum[k];
+    const names=L=='g'?'group':'stage';
+    box.append(el('h3',{html:`<span class="grp" style="font-size:14px">${esc(lv)}</span> <span class="na" style="font-weight:400">(${names})</span>`}));
+    if(sm) box.append(el('div',{cls:'cards'},
+      el('div',{cls:'card'},el('div',{cls:'k',txt:'copies up'}),el('div',{cls:'v',txt:sm.cu==null?'–':sm.cu.toLocaleString()})),
+      el('div',{cls:'card'},el('div',{cls:'k',txt:'n50'}),el('div',{cls:'v',txt:sm.n50==null?'–':String(sm.n50)}),
+        el('div',{cls:'d',txt:'copies for 50% of increase'})),
+      el('div',{cls:'card'},el('div',{cls:'k',txt:'n80'}),el('div',{cls:'v',txt:sm.n80==null?'–':String(sm.n80)}),
+        el('div',{cls:'d',txt:'copies for 80%'})),
+      el('div',{cls:'card'},el('div',{cls:'k',txt:'context of top 80%'}),
+        el('div',{cls:'v',style:'font-size:12px;line-height:1.4;font-weight:600',txt:sm.ctx||'–'}))));
+    const tr=rows.map(r=>{
+      const ctxc = r.cx&&r.cx.includes('exonic')?'ctx-exonic':(r.cx&&r.cx.includes('intronic')?'ctx-intronic':'ctx-intergenic');
+      return `<tr>
+        <td class="mono">${r.rk}</td>
+        <td class="lf mono" style="font-size:11.5px">${esc(r.lo)}</td>
+        <td class="mono">${r.cg==null?'–':r.cg.toFixed(2)}</td>
+        <td class="mono">${r.cr==null?'–':r.cr.toFixed(2)}</td>
+        ${lfcCell(r.fc,null)}
+        <td class="mono ${r.sh>=0.4?'up sig':''}">${r.sh==null?'–':(r.sh*100).toFixed(0)+'%'}</td>
+        <td class="mono" style="font-size:11px">${esc(r.uu||'')}</td>
+        <td class="lf ${ctxc}" style="font-size:11.5px">${esc(r.cx||'')}</td>
+        <td class="lf mono" style="font-size:11px">${esc(r.hg||'')}</td>
+        <td class="lf" style="font-size:11px">${esc(r.or||'')}</td>
+        <td class="mono" style="font-size:11px">${r.sd==null?'':(r.sd>0.98?'<span class="up sig">':'<span>')+r.sd.toFixed(3)+'</span>'}</td>
+        ${lfcCell(r.al,null)}
+        <td class="mono" style="font-size:11px">${esc(r.au||'')}</td>
+        <td class="lf" style="font-size:10.5px;max-width:230px;white-space:normal">${esc(r.wl||'')}</td>
+      </tr>`}).join('');
+    box.append(el('div',{cls:'tw',html:`<table><thead><tr>
+      <th>#</th><th class="lf">locus</th><th>CPM<br>group</th><th>CPM<br>rest</th><th>log2FC</th>
+      <th>share of<br>increase</th><th>units<br>up</th><th class="lf">context</th><th class="lf">host gene</th>
+      <th class="lf">orient.</th><th>segdup</th><th>ATAC<br>log2FC</th><th>units<br>open</th><th class="lf">LTRs in window</th>
+      </tr></thead><tbody>${tr}</tbody></table>`}));
+    const hx=rows.filter(r=>r.he||r.np);
+    if(hx.length){
+      const d=el('details',{},el('summary',{txt:'Host and neighbouring gene expression for these copies'}));
+      d.append(el('div',{cls:'tw',html:`<table><thead><tr><th class="lf">locus</th><th class="lf">host gene expr (group/rest, log2FC)</th><th class="lf">nearest protein-coding</th><th class="lf">their expression</th></tr></thead><tbody>`+
+        hx.map(r=>`<tr><td class="lf mono" style="font-size:11px">${esc(r.lo)}</td>
+          <td class="lf" style="font-size:11px;white-space:normal">${esc(r.he||'–')}</td>
+          <td class="lf" style="font-size:11px;white-space:normal">${esc(r.np||'–')}</td>
+          <td class="lf" style="font-size:11px;white-space:normal">${esc(r.ne||'–')}</td></tr>`).join('')+
+        `</tbody></table>`}));
+      box.append(d);
+    }
+  }
+  return box;
+}
+
+const TABS=[['overview','Overview'],['rna','RNA (2 methods, 3 counts)'],['atac','ATAC (2 methods)'],['loci','Per-locus']];
+function select(fam,tab){
+  if(!D.meta[fam]&&!D.rna.g[fam]&&!D.atac.g[fam]) return;
+  CUR=fam; TAB=tab||'overview';
+  [...$('#list').children].forEach(i=>i.classList&&i.classList.toggle('on',i.dataset&&i.dataset.f==fam));
+  setView('browse');
+  const m=D.meta[fam]||{}, bt=bestTier(fam);
+  const box=$('#p-browse'); box.textContent='';
+  box.append(el('div',{cls:'fhead'},
+    el('h2',{txt:fam}),
+    bt?el('span',{cls:'badge b-'+bt,txt:bt}):el('span',{cls:'badge b-none',txt:'not a candidate'}),
+    el('span',{cls:'tag',txt:(m.f||'?')+' · '+(m.c||'?')})));
+  const tabs=el('div',{cls:'tabs'});
+  TABS.forEach(([k,lab])=>{
+    const b=el('button',{cls:k==TAB?'on':'',txt:lab});
+    b.onclick=()=>select(fam,k); tabs.append(b);
+  });
+  box.append(tabs);
+  const body=el('div');
+  body.append(TAB=='overview'?tabOverview(fam):TAB=='rna'?tabRNA(fam):TAB=='atac'?tabATAC(fam):tabLoci(fam));
+  box.append(body);
+  history.replaceState(null,'','#'+encodeURIComponent(fam)+(TAB!='overview'?'/'+TAB:''));
+  box.scrollIntoView({block:'start'});
+}
+
+/* ===================== all-results view ===================== */
+let ALL={sort:'ir',desc:true,lt:'g',only:'cand'};
+function renderAll(){
+  const box=$('#p-all'); box.textContent='';
+  box.append(el('h3',{txt:'All results, one row per subfamily × group'}));
+  box.append(el('p',{cls:'note',html:'Every subfamily tested, not only the called candidates. Click a subfamily name to open its detail tabs. Sort by any column header.'}));
+  const ctl=el('div',{cls:'chips',style:'margin-bottom:10px'});
+  [['cand','candidates only'],['sig','any method padj<0.05 & log2FC>0.5'],['all','everything']].forEach(([k,lab])=>{
+    const b=el('button',{cls:'chip'+(ALL.only==k?' on':''),txt:lab});
+    b.onclick=()=>{ALL.only=k;renderAll()};ctl.append(b);
+  });
+  [['g','by cell group'],['s','by stage']].forEach(([k,lab])=>{
+    const b=el('button',{cls:'chip'+(ALL.lt==k?' on':''),txt:lab,style:'margin-left:8px'});
+    b.onclick=()=>{ALL.lt=k;renderAll()};ctl.append(b);
+  });
+  box.append(ctl);
+
+  const L=ALL.lt, names=lvlName(L);
+  let rows=[];
+  for(const f of D.fam){
+    const rna=D.rna[L][f], at=D.atac[L][f], m=D.meta[f]||{};
+    names.forEach((n,i)=>{
+      const t=tierOf(f,L,n);
+      const r=rna?rna[i]:[null,null,null,null,null,null,null,null];
+      const a=at?at[i]:[null,null,null,null,null];
+      if(ALL.only=='cand'&&!t) return;
+      if(ALL.only=='sig'){
+        const ok=[[r[0],r[1]],[r[2],r[3]],[r[4],r[5]],[a[0],a[1]],[a[2],a[3]]].some(([v,p])=>v!=null&&v>0.5&&p!=null&&p<0.05);
+        if(!ok) return;
+      }
+      if(FILT.cls&&m.c!=FILT.cls) return;
+      if(FILT.q){const q=FILT.q.toLowerCase();if(!(f.toLowerCase().includes(q)||(m.f||'').toLowerCase().includes(q)))return}
+      rows.push({f,n,m,t,ir:r[0],pir:r[1],ex:r[2],pex:r[3],no:r[4],pno:r[5],fr:r[6],vd:r[7],ac:a[0],pac:a[1],as:a[2],pas:a[3],
+        n50:(D.lsum[f+'|'+n+'|'+L]||{}).n50});
+    });
+  }
+  const key={fam:r=>r.f,lvl:r=>r.n,ir:r=>r.ir,ex:r=>r.ex,no:r=>r.no,fr:r=>r.fr,ac:r=>r.ac,as:r=>r.as,n50:r=>r.n50,tier:r=>r.t?r.t.tier:'zz'}[ALL.sort]||(r=>r.ir);
+  rows.sort((a,b)=>{
+    const x=key(a),y=key(b);
+    const xn=x==null,yn=y==null; if(xn&&yn)return 0; if(xn)return 1; if(yn)return -1;
+    const c=typeof x=='string'?x.localeCompare(y):x-y;
+    return ALL.desc?-c:c;
+  });
+  box.append(el('div',{cls:'hint',txt:`${rows.length.toLocaleString()} rows`}));
+  const cap=rows.slice(0,3000);
+  const H=[['fam','subfamily','lf'],['lvl',L=='g'?'group':'stage','lf'],['tier','tier','lf'],
+    ['ir','IRescue',''],['ex','scTE excl',''],['no','scTE noint',''],['fr','frac ratio',''],
+    ['vd','verdict','lf'],['ac','ATAC cut',''],['as','ATAC scTE',''],['n50','n50','']];
+  const thead='<tr>'+H.map(([k,lab,c])=>`<th class="srt ${c||''}" data-k="${k}">${lab}${ALL.sort==k?(ALL.desc?' ▾':' ▴'):''}</th>`).join('')+'</tr>';
+  const tb=cap.map(r=>`<tr class="${r.t?'cand':''}">
+    <td class="lf mono" style="font-weight:600"><a href="#${encodeURIComponent(r.f)}" data-f="${esc(r.f)}">${esc(r.f)}</a> <span class="na" style="font-size:10.5px">${esc(r.m.f||'')}</span></td>
+    <td class="lf grp">${esc(r.n)}</td>
+    <td class="lf">${r.t?`<span class="badge b-${r.t.tier}">${r.t.tier}</span>${r.t.rs?` <span class="na" style="font-size:10.5px">${esc(r.t.rs)}</span>`:''}`:''}</td>
+    ${lfcCell(r.ir,r.pir)}${lfcCell(r.ex,r.pex)}${lfcCell(r.no,r.pno)}
+    <td class="mono">${r.fr==null?'–':r.fr.toFixed(2)}</td>
+    <td class="lf">${r.vd?`<span class="pill v-${r.vd}">${esc(r.vd)}</span>`:''}</td>
+    ${lfcCell(r.ac,r.pac)}${lfcCell(r.as,r.pas)}
+    <td class="mono">${r.n50==null?'':r.n50}</td></tr>`).join('');
+  const w=el('div',{cls:'tw',html:`<table><thead>${thead}</thead><tbody>${tb}</tbody></table>`});
+  w.querySelectorAll('th.srt').forEach(th=>th.onclick=()=>{
+    const k=th.dataset.k;
+    if(ALL.sort==k)ALL.desc=!ALL.desc; else {ALL.sort=k;ALL.desc=true}
+    renderAll();
+  });
+  w.addEventListener('click',e=>{const a=e.target.closest('a[data-f]');if(a){e.preventDefault();select(a.dataset.f)}});
+  box.append(w);
+  if(rows.length>cap.length) box.append(el('div',{cls:'hint',txt:`showing first ${cap.length.toLocaleString()} of ${rows.length.toLocaleString()} — use the filters above or the sidebar search`}));
+}
+
+/* ===================== help ===================== */
+function renderHelp(){
+  $('#p-help').innerHTML = D.help;
+}
+
+/* ===================== views ===================== */
+function setView(v){
+  document.querySelectorAll('.views button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('on',p.id=='p-'+v));
+  $('#side').style.display = v=='help'?'none':'';
+  if(v=='all') renderAll();
+  if(v=='help') renderHelp();
+}
+document.querySelectorAll('.views button').forEach(b=>b.onclick=()=>setView(b.dataset.v));
+$('#themeBtn').onclick=()=>{
+  const cur=document.documentElement.getAttribute('data-theme');
+  const dark=cur? cur=='dark' : matchMedia('(prefers-color-scheme:dark)').matches;
+  document.documentElement.setAttribute('data-theme',dark?'light':'dark');
+};
+
+/* ===================== boot ===================== */
+$('#hsub').textContent = `${D.fam.length.toLocaleString()} subfamilies · ${GN.length} cell groups · ${SN.length} stages · ${D.ncand} candidate calls`;
+renderList();
+const h=decodeURIComponent(location.hash.replace(/^#/,''));
+if(h){ const [f,t]=h.split('/'); if(D.meta[f]||D.rna.g[f]) select(f,t); else select(FAMS[0]); }
+else select(FAMS[0]);
+addEventListener('hashchange',()=>{
+  const h=decodeURIComponent(location.hash.replace(/^#/,''));
+  if(!h) return;
+  const [f,t]=h.split('/');
+  if((D.meta[f]||D.rna.g[f]) && (f!=CUR||(t||'overview')!=TAB)) select(f,t);
+});
+addEventListener('keydown',e=>{
+  if(e.key=='/'&&document.activeElement!=$('#q')){e.preventDefault();$('#q').focus()}
+});
+</script>
+</body>
+</html>
