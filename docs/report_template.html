@@ -118,6 +118,7 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
   <a class="sub" href="#s13">4.13 Locus level</a>
   <a class="sub" href="#s14">4.14 ZNF808 / MER11</a>
   <a class="sub" href="#s15">4.15 Copy follow-up</a>
+  <a class="sub" href="#s16">4.16 Trajectory: provirus vs CDH6</a>
   <a href="#results">5. Results</a>
   <a class="sub" href="#r0">5.0 What is already known</a>
   <a class="sub" href="#r1">5.1 Global TE load</a>
@@ -130,6 +131,7 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
   <a class="sub" href="#r8">5.8 Candidate tiers</a>
   <a class="sub" href="#r9">5.9 ZNF808 / MER11</a>
   <a class="sub" href="#r10">5.10 Per copy: what is behind each candidate</a>
+  <a class="sub" href="#r11">5.11 Provirus vs CDH6 trajectory</a>
   <a href="#caveats">6. Caveats</a>
   <a href="#next">7. Next steps</a>
   <a href="#appendix">8. Appendix</a>
@@ -137,7 +139,8 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
 
 <main>
 <h1>ERV / transposable-element activity during SC-islet differentiation</h1>
-<div class="meta">Progress report, version 3 · 4 Oct 2026 · repo <code>/pl/active/ZhuLab_BDC/GitHub/HERV_pancreatic_differentiation</code> (Alpine, local git) · local mirror <code>~/Documents/Claude/HERV_pancreatic_differentiation</code> · outputs <code>$TE_OUT=/scratch/alpine/hzhu10@xsede.org/herv_pancreatic_differentiation/out</code></div>
+<div class="meta">Progress report, version 4 · 5 Oct 2026 · repo <code>/pl/active/ZhuLab_BDC/GitHub/HERV_pancreatic_differentiation</code> (Alpine, local git) · local mirror <code>~/Documents/Claude/HERV_pancreatic_differentiation</code> · outputs <code>$TE_OUT=/scratch/alpine/hzhu10@xsede.org/herv_pancreatic_differentiation/out</code></div>
+<div class="callout good"><b>New in version 4: provirus vs CDH6 along the endocrine trajectory (5.11).</b> The provirus is the nearest ERV-gene pair to CDH6, which drops at endocrine delamination, so we asked whether the two are linked. They are not: CDH6 falls together with the NEUROG3 rise, well before the provirus switches on; the provirus rises <i>after</i> CHGA, i.e. it marks committed endocrine cells. The provirus–CDH6 anti-correlation is no stronger than for random genes. Also new: Ensembl (GENCODE long-read pipeline) now annotates the provirus as a spliced 2-exon lncRNA, ENSG00000297849, running from its 5′ LTR to its 3′ LTR.</div>
 <div class="callout good"><b>New in version 3: per-copy results (5.10).</b> The endocrine LTR12/HERV9 signal comes from <b>one full-length HERV9 provirus at chr5:30.20 Mb</b>, 1 Mb from any protein-coding gene. Its 5′ LTR opens and the provirus is transcribed from ENP1/ENP2 on, peaking in early EC-β. Several other candidates turn out to be host transcripts (HERV15 in ACSM3, MER92 in a beta-cell lncRNA) or sit in an unmappable duplication (chr5q13). MER11 is not switched on copy by copy in the liver-like cells either.</div>
 <div class="callout info"><b>New in version 2:</b>
 <ul style="margin:6px 0 0;padding-left:18px">
@@ -489,6 +492,21 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
 <details><summary>scripts/18_locus_followup.py</summary><pre><code><!--SCRIPT:scripts/18_locus_followup.py--></code></pre></details>
 <details><summary>scripts/20_locus_atac.py</summary><pre><code><!--SCRIPT:scripts/20_locus_atac.py--></code></pre></details>
 <details><summary>scripts/21_herv9_chr5_provirus.py</summary><pre><code><!--SCRIPT:scripts/21_herv9_chr5_provirus.py--></code></pre></details>
+
+<h3 id="s16">4.16 Trajectory: provirus vs CDH6 (idea from the phone session)</h3>
+<dl class="steps-meta">
+<dt>Idea</dt><dd>The nearest protein-coding gene to the provirus is <b>CDH6</b> (K-cadherin), ~1 Mb away with nothing protein-coding in between. CDH6 is high in PP and drops at ENP1 → ENP2, where the provirus switches on. Hypothesis: the provirus takes part in, or marks, the adhesion switch as endocrine progenitors delaminate from the PP epithelium. Full note: <code>docs/IDEA_HERV9_CDH6_delamination.md</code>.</dd>
+<dt>How</dt><dd>
+  <ol style="margin:4px 0;padding-left:20px">
+    <li><b>Cells:</b> PP1/PP2 → ENP1–3 → early endocrine, up to 4,000 per group (27,117 cells).</li>
+    <li><b>Pseudotime:</b> diffusion pseudotime on the scVI B latent (<code>X_scvi_scviB_per_sample</code>), rooted at the PP1 extreme of DC1.</li>
+    <li><b>Per-cell signals:</b> gene counts from the shared counts layer; provirus RNA from per-copy IRescue counts (4 copies); ATAC cut sites from fragments at the 5′ LTR and at every promoter within ±2 Mb, scaled by cut sites at 20 housekeeping promoters.</li>
+    <li><b>Order of events:</b> 40 equal-size pseudotime bins; for each feature, the half-max crossing (switch on / off), with 95% bootstrap intervals over cells.</li>
+    <li><b>Cis link:</b> metacells (k-means on the latent within each sample, ~50 cells; 541 metacells). Spearman correlation of provirus RNA and 5′ LTR accessibility with each expressed gene within ±2 Mb, against 1,000 random expressed genes (empirical p).</li>
+  </ol></dd>
+<dt>Run</dt><dd>Job 33438462 (2.5 min). The latent key was passed explicitly; the script's default would have picked scVI A.</dd>
+</dl>
+<details><summary>scripts/22_herv9_cdh6_trajectory.py</summary><pre><code><!--SCRIPT:scripts/22_herv9_cdh6_trajectory.py--></code></pre></details>
 </section>
 
 <section id="results">
@@ -703,7 +721,55 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
 <tr><td><b>HERVIP10B3 / PABL_A</b><br>liver</td><td>Many copies (n50 4–5): near FKBP5 (intergenic), introns of NECTIN3-AS1, SOAT2 (liver gene, up 21×)</td><td>Mixed: some host genes up, some intergenic</td><td>Mostly opened (log2FC 0.9–1.5 at 7 of 10 top copies)</td><td><span class="pill good">liver-like ERV program</span> Partly host genes.</td></tr>
 <tr><td><b>LTR60B</b><br>early β</td><td>ASIC2 intron, near SGCD (both up 3.5×)</td><td>Genes up with it</td><td>Not opened</td><td><span class="pill warn">mostly host / neighbour genes</span></td></tr>
 </tbody></table></div>
+<div class="callout info"><b>The provirus is an annotated, spliced lncRNA in current Ensembl.</b> ENSG00000297849 (lncRNA, "novel transcript", source havana_tagene, i.e. the GENCODE long-read pipeline), chr5:30,197,989–30,205,018 (+). It has one transcript, ENST00000751379, with 2 exons:
+<ul style="margin:6px 0 0;padding-left:18px">
+<li>exon 1, 30,197,989–30,198,214: starts inside the LTR12B 5′ LTR;</li>
+<li>exon 2, 30,204,416–30,205,018: the end of HERV9-int into the LTR12_ 3′ LTR.</li>
+</ul>
+So it is an LTR-promoted transcript, spliced from the 5′ LTR to the 3′ LTR. Our 10x 3′ reads land on exon 2, matching where IRescue placed most of the signal. Our pipeline called it "intergenic" only because the Cell Ranger 2020-A GTF (GENCODE v32) predates this model. Checked via the Ensembl REST API.</div>
 <p style="font-size:13.5px;color:var(--muted)">Full tables: <code>$TE_OUT/qc/locus_candidates_group.csv</code> (copies per candidate), <code>locus_followup.csv</code> (duplications, neighbours, gene expression), <code>locus_atac.csv</code>, <code>herv9_chr5_provirus.csv</code>. Local copies are in <code>results/locus/</code>.</p>
+<h3 id="r11">5.11 Provirus vs CDH6 along the endocrine trajectory: no link, the provirus comes later</h3>
+<figure><img src="<!--IMG:results/herv9_cdh6/trajectory.png-->" alt="Left: diffusion map of PP, ENP and early endocrine cells; PP on the right, endocrine on the upper left, ENP1 forming a downward arm. Middle: min-max scaled curves along pseudotime; CDH6 and CDH1 fall early, NEUROG3 rises then falls, CHGA rises late, the provirus and its 5' LTR accessibility rise last. Right: Spearman correlation of provirus RNA with genes within 2 Mb; CDH6 is the most negative but inside the band of random genes."><figcaption>Left: diffusion map (scVI B latent) of PP1/PP2, ENP1–3 and early endocrine cells. Middle: scaled bin means along diffusion pseudotime (PP1 root): provirus RNA and 5′ LTR accessibility (red, orange), CDH6 RNA and promoter accessibility (blues), CDH1, NEUROG3, CHGA. Right: metacell Spearman correlation of provirus RNA with each expressed gene within ±2 Mb; the shaded band is the central 95% of 1,000 random genes.</figcaption></figure>
+<div class="grid2">
+<div class="table-wrap"><table>
+<thead><tr><th>Feature</th><th>Direction</th><th class="num">Half-max pseudotime</th><th class="num">95% CI</th></tr></thead>
+<tbody>
+<tr><td>SNAI2</td><td>rise</td><td class="num">0.08</td><td class="num">0.08–0.76</td></tr>
+<tr><td>EPCAM</td><td>fall</td><td class="num">0.29</td><td class="num">0.27–0.29</td></tr>
+<tr><td>CDH1</td><td>fall</td><td class="num">0.35</td><td class="num">0.29–0.36</td></tr>
+<tr><td>SOX9</td><td>fall</td><td class="num">0.48</td><td class="num">0.35–0.48</td></tr>
+<tr><td>NEUROG3</td><td>rise</td><td class="num">0.48</td><td class="num">0.47–0.48</td></tr>
+<tr><td>CDH6</td><td>fall</td><td class="num">0.48</td><td class="num">0.47–0.76</td></tr>
+<tr><td>NEUROD1</td><td>rise</td><td class="num">0.75</td><td class="num">0.75–0.82</td></tr>
+<tr><td>CHGA</td><td>rise</td><td class="num">0.86</td><td class="num">0.86–0.86</td></tr>
+<tr><td>ATAC_CDH6_promoter</td><td>fall</td><td class="num">0.86</td><td class="num">0.47–0.89</td></tr>
+<tr><td>ATAC_prov_5LTR</td><td>rise</td><td class="num">0.89</td><td class="num">0.89–0.89</td></tr>
+<tr><td>provirus</td><td>rise</td><td class="num">0.90</td><td class="num">0.89–0.90</td></tr>
+</tbody></table></div>
+<div class="table-wrap"><table>
+<thead><tr><th>Gene</th><th>Type</th><th class="num">kb</th><th class="num">ρ provirus RNA</th><th class="num">p (vs random)</th><th class="num">ρ 5′ LTR acc.</th><th class="num">p</th><th class="num">ρ 5′ LTR vs promoter acc.</th></tr></thead>
+<tbody>
+<tr><td>CDH6</td><td>protein_coding</td><td class="num">996</td><td class="num">-0.55</td><td class="num">0.10</td><td class="num">-0.53</td><td class="num">0.10</td><td class="num">-0.24</td></tr>
+<tr><td>AC113386.1</td><td>lncRNA</td><td class="num">1070</td><td class="num">-0.49</td><td class="num">0.17</td><td class="num">-0.46</td><td class="num">0.17</td><td class="num">-0.04</td></tr>
+<tr><td>DROSHA</td><td>protein_coding</td><td class="num">1334</td><td class="num">-0.49</td><td class="num">0.17</td><td class="num">-0.47</td><td class="num">0.16</td><td class="num">+0.27</td></tr>
+<tr><td>AC025178.1</td><td>lncRNA</td><td class="num">1924</td><td class="num">-0.16</td><td class="num">0.65</td><td class="num">-0.12</td><td class="num">0.73</td><td class="num">+0.00</td></tr>
+<tr><td>C5orf22</td><td>protein_coding</td><td class="num">1335</td><td class="num">-0.07</td><td class="num">0.86</td><td class="num">-0.11</td><td class="num">0.75</td><td class="num">+0.28</td></tr>
+<tr><td>GOLPH3</td><td>protein_coding</td><td class="num">1977</td><td class="num">-0.00</td><td class="num">0.99</td><td class="num">-0.01</td><td class="num">0.97</td><td class="num">+0.10</td></tr>
+<tr><td>PDZD2</td><td>protein_coding</td><td class="num">1441</td><td class="num">+0.20</td><td class="num">0.60</td><td class="num">+0.26</td><td class="num">0.45</td><td class="num">+0.00</td></tr>
+<tr><td>AC025181.2</td><td>lncRNA</td><td class="num">1977</td><td class="num">+0.34</td><td class="num">0.35</td><td class="num">+0.31</td><td class="num">0.37</td><td class="num">+0.09</td></tr>
+</tbody></table></div>
+</div>
+<ul>
+<li><b>Order of events:</b> EPCAM (0.29) and CDH1 (0.36) fall first. Then <b>CDH6 falls together with the NEUROG3 rise (both 0.48)</b>. NEUROD1 (0.76) and CHGA (0.86) follow. Only then do the <b>5′ LTR open (0.89) and the provirus RNA rise (0.90)</b>. The provirus switches on after delamination and after CHGA, in committed endocrine cells.</li>
+<li><b>No cis link to CDH6:</b> across metacells CDH6 is the most anti-correlated gene within 2 Mb (ρ = −0.55), but random genes genome-wide do as well about 10% of the time (empirical p = 0.10). DROSHA and a lncRNA nearby behave similarly. The 5′ LTR's accessibility is only weakly related to the CDH6 promoter's (ρ = −0.24). Anti-correlation along a lineage is expected for many gene pairs.</li>
+<li><b>Revised view:</b> the provirus is a <b>marker of the endocrine state</b>, switched on with or just after CHGA and highest in EC-β and δ. It is not an element of the PP → endocrine adhesion switch. Whether it does anything locally is open: it is a spliced lncRNA, but no nearby gene follows it.</li>
+<li><b>Caveats:</b>
+  <ul>
+    <li><b>Pseudotime shape:</b> ENP1 forms its own arm on the diffusion map, so pseudotime between PP and endocrine is not one straight path. With equal-cell bins, few bins fall between 0.3 and 0.75.</li>
+    <li><b>Confidence intervals:</b> wide for CDH6 (0.47–0.76) and SNAI2, but even CDH6's upper bound is well before the provirus (0.89–0.90).</li>
+    <li><b>Design limits:</b> one protocol; stage and batch are confounded.</li>
+  </ul></li>
+</ul>
 </section>
 
 <section id="caveats">
@@ -723,6 +789,13 @@ figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
 <section id="next">
 <h2>7. Next steps</h2>
 <ol>
+<li><b>(done) Provirus vs CDH6</b>, see 5.11: no link, so the delamination hypothesis is dropped. The provirus is an endocrine-state marker.</li>
+<li><b>Fetal pancreas replication (in progress):</b> Olaniru et al. 2023 (GSE197064, 12–20 PCW, 4 hashtag pools, 10x 3′ v3).
+  <ul>
+    <li>Download to scratch, then Cell Ranger 9 (GRCh38-2020-A, BAM kept).</li>
+    <li>Reproduce their Seurat analysis: HTODemux plus their published donor/PCW calls, their QC thresholds, SCTransform + integration, annotation.</li>
+    <li>Make it TE-ready: IRescue subfamily and per-copy counts. Is the chr5 HERV9 provirus on in fetal NEUROG3+ progenitors and endocrine cells?</li>
+  </ul></li>
 <li><b>(done) Name the copies</b>, see 5.10. Follow-ups:
   <ul>
     <li><b>chr5 HERV9 provirus:</b> what does its transcript look like? Check where reads fall along it, whether it is spliced or polyadenylated, and whether any public long-read or islet data show it. Is it expressed in primary human islets or fetal pancreas endocrine cells? Which TFs bind its LTR12B (NEUROG3, NEUROD1, RFX, NKX2-2 motifs; NF-Y)? Does it affect anything nearby (Hi-C or co-accessibility)? Knockdown or LTR deletion would test function.</li>

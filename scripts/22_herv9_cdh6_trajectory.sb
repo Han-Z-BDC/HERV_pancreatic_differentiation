@@ -1,0 +1,16 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=64G
+#SBATCH --time=03:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --job-name=herv9_cdh6
+#SBATCH --output=logs/herv9_cdh6.%j.out
+# HERV9 chr5 provirus vs CDH6 along PP -> ENP -> endocrine (pseudotime, onset order, cis links).
+# Idea note: docs/IDEA_HERV9_CDH6_delamination.md. Untested draft: first run with defaults, check the log.
+# Optional: SCVI_LATENT_KEY=<obsm key> sbatch ... ; add --with-late to include late endocrine groups.
+set -euo pipefail
+set -a; source config.sh; set +a
+"$TE_ENV/bin/python" scripts/22_herv9_cdh6_trajectory.py "$@"
