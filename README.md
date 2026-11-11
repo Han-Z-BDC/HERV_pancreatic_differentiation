@@ -37,4 +37,5 @@ Outputs go to `$TE_OUT` (scratch), never into the shared pipeline folders.
 - 10x 3' chemistry captures the 3' end of polyadenylated transcripts only.
 - Stage and differentiation batch coincide for most stages (only D7/D9 have two batches).
 
-Nothing is pushed to a remote yet.
+Git remote: `Han-Z-BDC/HERV_pancreatic_differentiation` (private). Scripts are edited and committed on Alpine;
+reports are built on the Mac from `docs/build_report.py` and `scripts/23_build_explorer.py`.
