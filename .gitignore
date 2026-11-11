@@ -8,3 +8,11 @@ logs/
 *.npy
 __pycache__/
 .ipynb_checkpoints/
+
+# reports, figures and tables: built on the Mac by docs/build_report.py and scripts/23_build_explorer.py
+results/
+docs/figures/
+docs/*.html
+!docs/*_template.html
+.DS_Store
+._*
