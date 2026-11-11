@@ -1,0 +1,18 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=24
+#SBATCH --mem=220G
+#SBATCH --time=08:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --job-name=fetal_integ
+#SBATCH --output=logs/fetal_integ.%j.out
+# One job: merge 10 libraries (81,427 cells x ~36k genes), normalise, PCA, then Harmony three
+# times plus four UMAPs. Memory is driven by the merged full-gene object, not by Harmony.
+set -euo pipefail
+SC=/projects/hzhu10@xsede.org/software/anaconda/envs/single.cell
+export LD_LIBRARY_PATH="$SC/lib:${LD_LIBRARY_PATH:-}"
+export R_HOME="$SC/lib/R"
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
+"$SC/bin/python" scripts/fetal/19_fetal_integrate.py "$@"

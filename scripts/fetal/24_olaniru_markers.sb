@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=12
+#SBATCH --mem=45G
+#SBATCH --time=03:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --job-name=olan_mark
+#SBATCH --output=logs/olan_mark.%j.out
+# 19,830 cells -- a quarter of the joint atlas, whose prep peaked at 8.7 GB, so ~4 GB here.
+# 60G/16cpu = 3.75 G/cpu exactly (acpu MaxMemPerCPU) so no silent CPU inflation.
+# scVI on CPU: the GPU queue is not worth it for 2 models at this size.
+set -euo pipefail
+SC=/projects/hzhu10@xsede.org/software/anaconda/envs/single.cell
+export LD_LIBRARY_PATH="$SC/lib:${LD_LIBRARY_PATH:-}"
+export R_HOME="$SC/lib/R"
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
+export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
+"$SC/bin/python" scripts/fetal/24_olaniru_markers.py "$@"

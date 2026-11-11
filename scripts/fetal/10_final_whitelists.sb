@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2
+#SBATCH --mem=16G
+#SBATCH --time=00:15:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --job-name=final_wl
+#SBATCH --output=logs/final_wl.%j.out
+# Post-doublet cell whitelists for the TE track. Cheap: reads obs_names from four h5ads.
+set -euo pipefail
+set -a; source config.sh; set +a
+SC_ENV=/projects/hzhu10@xsede.org/software/anaconda/envs/single.cell
+export LD_LIBRARY_PATH="$SC_ENV/lib:${LD_LIBRARY_PATH:-}"
+export R_HOME="$SC_ENV/lib/R"
+"$SC_ENV/bin/python" scripts/fetal/10_final_whitelists.py \
+  --doublet-dir "$FETAL_OUT/qc_filtered/detect_doublets/h5ad" \
+  --outdir "$FETAL_OUT/qc_filtered/whitelists_final" \
+  --samples pool1 pool2 pool3 pool4

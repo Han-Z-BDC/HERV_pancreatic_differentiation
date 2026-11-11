@@ -1,0 +1,27 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=6
+#SBATCH --time=24:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --mem=16G
+#SBATCH --job-name=dl_migliorini
+#SBATCH --output=logs/dl_migliorini.%j.out
+# Migliorini et al. 2024 Cell Stem Cell (GSE230403 / PRJNA961074): second-trimester human fetal pancreas,
+# snRNA-seq, 10x 3' v3.1, 6 donors (14, 14, 16, 16, 18, 18 PCW) x 2 runs.
+# ENA's FASTQs hold only the cDNA read (no barcode/UMI read) -> use NCBI SRA: prefetch the .sra files
+# (all three reads kept), converted to 10x FASTQs by 02b_sra_to_fastq_migliorini.sb.
+# acpu nodes have internet (no 12 h cap as on acompile); prefetch resumes if resubmitted. Also fetches the GEO matrices.
+set -euo pipefail
+source config.sh
+OUT=$FETAL_ROOT/migliorini2024; mkdir -p "$OUT/sra" "$OUT/geo_suppl"
+runs=$(tail -n +2 configs/fetal_migliorini_samples.tsv | cut -f5 | tr ',' '\n')
+echo "$runs" | xargs -P 6 -I{} "$SRA_ENV/bin/prefetch" {} --max-size 60G -O "$OUT/sra"
+for r in $runs; do
+  "$SRA_ENV/bin/vdb-validate" "$OUT/sra/$r" 2>&1 | tail -1
+done
+cd "$OUT/geo_suppl"
+wget -c -q https://ftp.ncbi.nlm.nih.gov/geo/series/GSE230nnn/GSE230403/suppl/filelist.txt || true
+wget -c -q -r -nd -np -A "*.gz,*.tar" https://ftp.ncbi.nlm.nih.gov/geo/series/GSE230nnn/GSE230403/suppl/ || true
+ls -la "$OUT/sra"/* "$OUT/geo_suppl"; du -sh "$OUT/sra"

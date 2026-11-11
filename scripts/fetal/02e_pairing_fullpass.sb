@@ -1,0 +1,74 @@
+#!/bin/bash
+#SBATCH --job-name=bc_full
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --nodes=1
+#SBATCH --ntasks=8
+#SBATCH --time=04:00:00
+#SBATCH --output=logs/bc_full.%j.out
+# Establish the true GEX<->HTO pairing for Olaniru 2023.
+#
+# Earlier attempts sampled the first N reads of each FASTQ and found ~0% barcode overlap for every
+# pair -- including pool1, which Cell Ranger's own CHECK_BARCODES_COMPATIBILITY accepted. Cell Ranger
+# reads these same files (03_cellranger_count.sb symlinks them), so the 0% was an artefact: reads in
+# an ENA/SRA fastq are not in random order, so the head of the file is a biased slice of cells.
+# This version makes a FULL pass over every read of all 8 runs.
+#
+# Gotcha retained from 02d: `zcat f | head -N` kills zcat with SIGPIPE, which `set -o pipefail` turns
+# into a fatal error. Extraction runs with pipefail off.
+set -euo pipefail
+set -a; source config.sh; set +a
+W="$FETAL_OUT/bc_check"; mkdir -p "$W"; cd "$FETAL_OUT/raw"
+TOP=${TOP:-5000}
+RUNS="SRR18080915 SRR18080916 SRR18080917 SRR18080918 SRR18080919 SRR18080920 SRR18080921 SRR18080922"
+
+echo "=== full-file barcode counts (all reads) ==="
+for s in $RUNS; do
+  ( set +o pipefail
+    zcat "$s/${s}_1.fastq.gz" 2>/dev/null \
+      | awk 'NR%4==2{print substr($0,1,16)}' \
+      | sort -S2G | uniq -c | sort -rnS2G > "$W/full_$s.cnt" ) &
+done
+wait
+for s in $RUNS; do
+  tot=$(awk '{t+=$1}END{print t}' "$W/full_$s.cnt")
+  printf "  %s  reads=%-12s distinct_bc=%-10s top_bc=%s\n" \
+    "$s" "$tot" "$(wc -l < "$W/full_$s.cnt")" "$(head -1 "$W/full_$s.cnt" | awk '{print $1}')"
+  head -"$TOP" "$W/full_$s.cnt" | awk '{print $2}' | sort > "$W/f_$s.txt"
+done
+
+echo
+echo "=== overlap matrix: % of GEX top-$TOP barcodes shared with HTO top-$TOP ==="
+printf "%-10s"; for h in SRR18080915 SRR18080916 SRR18080917 SRR18080918; do printf "%9s" "${h#SRR180809}"; done; echo
+for g in SRR18080919 SRR18080920 SRR18080921 SRR18080922; do
+  printf "%-10s" "${g#SRR180809}"
+  for h in SRR18080915 SRR18080916 SRR18080917 SRR18080918; do
+    n=$(comm -12 "$W/f_$g.txt" "$W/f_$h.txt" | wc -l)
+    printf "%8.1f%%" "$(awk -v n="$n" -v t="$TOP" 'BEGIN{print n/t*100}')"
+  done
+  echo
+done
+echo
+echo "expected pairing (configs/fetal_olaniru_samples.tsv):"
+awk -F'\t' 'NR>1{printf "  %s  GEX %s (%s)  HTO %s (%s)\n", $2, $5, substr($5,10), $6, substr($6,10)}' \
+  "$SLURM_SUBMIT_DIR/configs/fetal_olaniru_samples.tsv"
+
+echo
+echo "=== 10x 3' v3 whitelist check ==="
+WL=$(find "$(dirname "$CELLRANGER")" -name "3M-february-2018.txt*" 2>/dev/null | head -1)
+echo "  whitelist: ${WL:-NOT FOUND}"
+if [[ -n "${WL:-}" ]]; then
+  set +o pipefail
+  { [[ "$WL" == *.gz ]] && zcat "$WL" || cat "$WL"; } | cut -f1 | sort > "$W/wl.txt"
+  set -o pipefail
+  for s in $RUNS; do
+    printf "  %s on-whitelist: %5s / %s\n" "$s" "$(comm -12 "$W/f_$s.txt" "$W/wl.txt" | wc -l)" "$TOP"
+  done
+fi
+
+echo
+echo "=== Cell Ranger metrics so far ==="
+for p in pool1 pool2 pool3 pool4; do
+  f="$FETAL_OUT/cellranger/$p/outs/metrics_summary.csv"
+  if [[ -f "$f" ]]; then echo "--- $p"; head -2 "$f"; else echo "--- $p (no metrics yet)"; fi
+done

@@ -1,0 +1,59 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=96G
+#SBATCH --time=24:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --array=1-4
+#SBATCH --job-name=cr_fetal
+#SBATCH --output=logs/cr_fetal.%A_%a.out
+# Cell Ranger count per pool (Olaniru 2023 fetal pancreas): gene expression + TotalSeq-B hashtags
+# (Antibody Capture; configs/fetal_hto_feature_ref.csv, verified with 02_check_hto_barcodes.sh).
+#   - reference: the Cell Ranger ARC GRCh38-2020-A reference (GENCODE v32), the same genes as the
+#     diff-multiome data, so TE results are comparable (paper: Cell Ranger 6.0.0, GRCh38)
+#   - --include-introns false: matches the paper's Cell Ranger 6 default (whole cells, not nuclei);
+#     affects gene counting only, not the BAM
+#   - --create-bam true: IRescue / scTE need the BAM with CB / UB tags
+# Output: $FETAL_OUT/cellranger/<pool>/outs/. Usage: sbatch scripts/fetal/03_cellranger_count.sb
+set -euo pipefail
+source config.sh
+# scratch (GPFS) reports a misleading free-inode count; Cell Ranger's preflight then refuses to start
+export MRO_DISK_SPACE_CHECK=disable
+row=$(awk -F'\t' -v t="${SLURM_ARRAY_TASK_ID}" 'NR>1 && $1==t' configs/fetal_olaniru_samples.tsv)
+pool=$(cut -f2 <<<"$row"); gex=$(cut -f5 <<<"$row"); hto=$(cut -f6 <<<"$row")
+# Cell Ranger wants <sample>_S1_L001_R{1,2}_001.fastq.gz: link the ENA files under those names
+fq="$FETAL_OUT/fastq_cr/$pool"; mkdir -p "$fq/gex"
+for r in 1 2; do
+  ln -sfn "$FETAL_OUT/raw/$gex/${gex}_${r}.fastq.gz" "$fq/gex/${pool}_GEX_S1_L001_R${r}_001.fastq.gz"
+done
+lib="$fq/libraries.csv"
+printf 'fastqs,sample,library_type\n%s,%s,Gene Expression\n' "$fq/gex" "${pool}_GEX" > "$lib"
+
+# pool4 (GSM5907968, 15/18/20 PCW) has no usable hashtag library, so it runs gene-expression only.
+# SRR18080915 is deposited as its Antibody Capture run but shares 0% of its cell barcodes with the
+# GEX run SRR18080919 (after the 10x 3' v3 GEX<->feature barcode translation, which is what makes
+# the other three pools match at 50-71%); the authors' own GSM5907968 matrix likewise contains no
+# Antibody Capture rows, while GSM5907965 has 26,215. Donor identity for this pool comes from the
+# GEO demultiplexing table instead (2003 x 15PCW, 2563 x 18PCW, 2122 x 20PCW, 476 unassigned,
+# 204 doublets over all 7,369 cells) -- see scripts/fetal/02e_pairing_fullpass.sb.
+feat=()
+if [[ "$hto" != "NA" && -n "$hto" ]]; then
+  mkdir -p "$fq/hto"
+  for r in 1 2; do
+    ln -sfn "$FETAL_OUT/raw/$hto/${hto}_${r}.fastq.gz" "$fq/hto/${pool}_HTO_S1_L001_R${r}_001.fastq.gz"
+  done
+  printf '%s,%s,Antibody Capture\n' "$fq/hto" "${pool}_HTO" >> "$lib"
+  feat=(--feature-ref "$PWD/configs/fetal_hto_feature_ref.csv")
+  echo "$pool: gene expression ($gex) + hashtags ($hto)"
+else
+  echo "$pool: gene expression only ($gex); donor labels come from the GEO demultiplexing table"
+fi
+
+mkdir -p "$FETAL_OUT/cellranger"; cd "$FETAL_OUT/cellranger"
+"$CELLRANGER" count --id "$pool" --libraries "$lib" "${feat[@]}" \
+  --transcriptome "$GENOME_DIR/refdata-cellranger-arc-GRCh38-2020-A-2.0.0" \
+  --include-introns false --create-bam true \
+  --localcores "$SLURM_CPUS_PER_TASK" --localmem 90
+ls -la "$pool/outs"

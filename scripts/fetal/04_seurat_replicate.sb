@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=96G
+#SBATCH --time=06:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --job-name=fetal_seurat
+#SBATCH --output=logs/fetal_seurat.%j.out
+# Reproduce the Olaniru 2023 Seurat analysis (04_seurat_replicate.R); needs 03 (Cell Ranger) for all pools.
+set -euo pipefail
+set -a; source config.sh; set +a
+/projects/hzhu10@xsede.org/software/anaconda/envs/single.cell/bin/Rscript scripts/fetal/04_seurat_replicate.R 2>&1 | grep -v R_HOME

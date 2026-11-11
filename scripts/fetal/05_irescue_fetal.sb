@@ -1,0 +1,37 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=12
+#SBATCH --mem=110G
+#SBATCH --time=06:00:00   # past IRescue runs on this project: 8-35 min subfamily, 2-3 min locus
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --array=1-4
+#SBATCH --job-name=irescue_fetal
+#SBATCH --output=logs/irescue_fetal.%A_%a.out
+# TE counts for the fetal pancreas pools (Olaniru 2023), exactly as for the diff-multiome data:
+#   subfamily level (as 03_irescue_subfamily.sb, TE BED of 01) and per copy for all LTR-class copies
+#   (as 15_irescue_locus.sb, $TE_ANNOT_DIR/irescue/ltr_loci.bed); 10x 3' v3 is forward-stranded; UB.
+# Cells: the QC-passed, donor-assigned cells of 09_qc_filter.py
+# ($FETAL_OUT/qc_filtered/whitelists/<pool>.txt) -- our own QC (erythrocyte removal, then 3-MAD on
+# counts/genes and the clamped %MT MAD rule), NOT 04's reproduction of the paper's fixed cutoffs.
+# 04 still writes its own whitelist under seurat/whitelists/; that one is the paper reproduction.
+# Output: $FETAL_OUT/irescue_{subfamily,locus}/<pool>/counts/. Usage: sbatch scripts/fetal/05_irescue_fetal.sb
+set -euo pipefail
+source config.sh
+export PATH="$TE_ENV/bin:$PATH"
+row=$(awk -F'\t' -v t="${SLURM_ARRAY_TASK_ID}" 'NR>1 && $1==t' configs/fetal_olaniru_samples.tsv)
+pool=$(cut -f2 <<<"$row")
+bam="$FETAL_OUT/cellranger/$pool/outs/possorted_genome_bam.bam"
+# FINAL whitelist: QC (09) + SoupX (1.2) + doublet removal (1.3). The earlier
+# qc_filtered/whitelists/ is pre-doublet and is kept only as the record of that stage.
+wl="$FETAL_OUT/qc_filtered/whitelists_final/${pool}.txt"
+[[ -s "$wl" ]] || { echo "missing whitelist $wl -- run scripts/fetal/10_final_whitelists.sb first" >&2; exit 1; }
+echo "task ${SLURM_ARRAY_TASK_ID}: ${pool} ($(wc -l < "$wl") cells)"
+for mode in subfamily locus; do
+  out="$FETAL_OUT/irescue_${mode}/${pool}"; mkdir -p "$out"
+  if [[ "$mode" == subfamily ]]; then bed="$TE_ANNOT_DIR/scte/hg38_TE.bed"; extra=""; else bed="$TE_ANNOT_DIR/irescue/ltr_loci.bed"; extra="-l"; fi
+  irescue -b "$bam" -r "$bed" -w "$wl" -c CB -u UB $extra --strandedness forward --integers \
+    -p "$SLURM_CPUS_PER_TASK" -o "$out"
+  ls -la "$out/counts"
+done

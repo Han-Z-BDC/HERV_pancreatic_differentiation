@@ -1,0 +1,56 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=40
+#SBATCH --mem=256G        # amem's mem-normal QoS has MinTRES mem=240G -- less is refused outright
+#SBATCH --time=24:00:00
+#SBATCH --partition=amem
+#SBATCH --qos=mem-normal
+#SBATCH --array=1-6
+#SBATCH --job-name=cr_migl
+#SBATCH --output=logs/cr_migl.%A_%a.out
+# Cell Ranger count per donor for Migliorini et al. 2024 Cell Stem Cell (GSE230403 / PRJNA961074):
+# human fetal pancreas single-NUCLEUS RNA-seq, 10x 3' v3.1, 6 donors x 2 sequencing runs, 14-18 PCW.
+#
+# Differences from the Olaniru pools (03_cellranger_count.sb):
+#   - --include-introns true: these are NUCLEI, where most reads are intronic. Leaving it false (the
+#     setting that matches Olaniru's whole cells) would discard the majority of the signal.
+#   - no hashtags: one donor per library, so no --libraries / --feature-ref, just --fastqs/--sample.
+#   - both sequencing runs of a donor sit in one directory as L001/L002, so Cell Ranger merges them.
+# Same reference as everything else (ARC GRCh38-2020-A, GENCODE v32) so TE results stay comparable.
+# --create-bam true because IRescue / scTE need CB and UB tags.
+#
+# Output: $MIGL_OUT/cellranger/<sample>/outs/. Usage: sbatch scripts/fetal/06_cellranger_migliorini.sb
+set -euo pipefail
+source config.sh
+# scratch (GPFS) reports a misleading free-inode count; Cell Ranger's preflight then refuses to start
+export MRO_DISK_SPACE_CHECK=disable
+
+row=$(awk -F'\t' -v t="${SLURM_ARRAY_TASK_ID}" 'NR>1 && $1==t' configs/fetal_migliorini_samples.tsv)
+sample=$(cut -f2 <<<"$row"); pcw=$(cut -f3 <<<"$row"); gsm=$(cut -f4 <<<"$row")
+fq="$MIGL_OUT/fastq/$sample"
+[[ -d "$fq" ]] || { echo "missing fastq dir $fq" >&2; exit 1; }
+echo "task ${SLURM_ARRAY_TASK_ID}: $sample ($pcw PCW, $gsm)"
+ls -la "$fq"
+
+# Sizing: each ALIGN_AND_COUNT chunk declares threads=4, memGB=19, so Martian runs
+#   min(localcores/4, localmem/19)
+# chunks at once. Measured, not guessed: the 16 GB/96 GB first attempt ran 4 concurrently; the
+# 24-core/360 GB second attempt ran exactly 6 (24/4) while using only 84 GB of 360 -- cores were
+# binding and the extra memory did nothing. 40 cores + 220 GB gives 10 concurrent chunks.
+# 40 and not more because mem-normal caps a user at 256 CPUs: 6 array tasks x 40 = 240 fits,
+# 6 x 48 would be refused. amem nodes are 48 cores / 1 TB, so memory is never the limit here.
+mkdir -p "$MIGL_OUT/cellranger"; cd "$MIGL_OUT/cellranger"
+# Martian resumes from the last completed stage when rerun with the same --id, but refuses to start
+# if a previous run was killed and left its lock behind.
+if [[ -e "$sample/_lock" ]]; then
+  echo "removing stale Martian lock from the interrupted run: $sample/_lock"
+  rm -f "$sample/_lock"
+fi
+"$CELLRANGER" count --id "$sample" \
+  --fastqs "$fq" --sample "$sample" \
+  --transcriptome "$GENOME_DIR/refdata-cellranger-arc-GRCh38-2020-A-2.0.0" \
+  --include-introns true --create-bam true \
+  --localcores "$SLURM_CPUS_PER_TASK" --localmem 210
+ls -la "$sample/outs"
+head -2 "$sample/outs/metrics_summary.csv"

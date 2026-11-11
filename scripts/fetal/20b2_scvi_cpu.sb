@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=16
+#SBATCH --mem=60G
+#SBATCH --time=12:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --job-name=fetal_scvi_cpu
+#SBATCH --output=logs/fetal_scvi_cpu.%j.out
+# CPU race partner for 20b_scvi.sb. The ah200 queue is ~10 h deep; acpu starts in minutes, so
+# CPU training can reach the answer first even though it is slower per epoch.
+# mem/cpus = 60/16 = 3.75 G/cpu exactly -- acpu MaxMemPerCPU, so no silent CPU bump.
+set -euo pipefail
+SC=/projects/hzhu10@xsede.org/software/anaconda/envs/single.cell
+export LD_LIBRARY_PATH="$SC/lib:${LD_LIBRARY_PATH:-}"
+export R_HOME="$SC/lib/R"
+export OMP_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
+export MKL_NUM_THREADS="${SLURM_CPUS_PER_TASK}"
+"$SC/bin/python" scripts/fetal/20_fetal_integrate.py --stage scvi --accelerator cpu --out-suffix _cpu

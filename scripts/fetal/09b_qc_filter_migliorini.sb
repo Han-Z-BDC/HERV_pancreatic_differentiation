@@ -1,0 +1,30 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=64G
+#SBATCH --time=02:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --job-name=migl_qcfilter
+#SBATCH --output=logs/migl_qcfilter.%j.out
+# Apply the agreed QC cutoffs to the Migliorini nuclei.
+#
+# Differences from the Olaniru run (09_qc_filter.sb), both deliberate:
+#   --mt-fixed 3.0  the MAD rule cannot be used on nuclei. Their median %MT is 0.02-0.10%, so
+#                   MAD shrinks to the quantization of ONE mitochondrial read and median+n*MAD
+#                   lands at 0.08-0.47%, discarding 8-20% of nuclei -- shallower ones, enriched
+#                   1.5-2.3x for PTPRC+ immune and PECAM1+ endothelial. A fixed line is immune to
+#                   that: one stray MT read cannot reach 3% at 5,000+ UMI. Costs 6-281 per sample.
+#   no --geo-suppl  one donor per library, so there is no demultiplexing table and no donor
+#                   filter; the stage comes from the sample name (S<n>_<weeks>PCW).
+set -euo pipefail
+set -a; source config.sh; set +a
+SC_ENV=/projects/hzhu10@xsede.org/software/anaconda/envs/single.cell
+export LD_LIBRARY_PATH="$SC_ENV/lib:${LD_LIBRARY_PATH:-}"
+export R_HOME="$SC_ENV/lib/R"
+"$SC_ENV/bin/python" scripts/fetal/09_qc_filter.py \
+  --samples configs/fetal_migliorini_qc.tsv \
+  --cellranger "$MIGL_OUT/cellranger" \
+  --mt-fixed 3.0 \
+  --outdir "$MIGL_OUT/qc_filtered"

@@ -1,0 +1,15 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=48G
+#SBATCH --time=00:40:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --job-name=scrubdx
+#SBATCH --output=logs/scrubdx.%j.out
+set -euo pipefail
+SC=/projects/hzhu10@xsede.org/software/anaconda/envs/single.cell
+export LD_LIBRARY_PATH="$SC/lib:${LD_LIBRARY_PATH:-}"
+export R_HOME="$SC/lib/R"
+"$SC/bin/python" scripts/fetal/13_scrublet_diag.py

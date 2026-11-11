@@ -1,0 +1,35 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=32G
+#SBATCH --time=12:00:00
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --array=1-6
+#SBATCH --job-name=sra2fq_migl
+#SBATCH --output=logs/sra2fq_migl.%A_%a.out
+# .sra -> 10x FASTQs (I1 8 bp, R1 28 bp barcode+UMI, R2 91 bp cDNA) per sample (both runs as lanes
+# L001/L002), named <sample>_S1_L00N_{I1,R1,R2}_001.fastq.gz for Cell Ranger. Deletes each .sra after a
+# successful conversion (raw data are not kept beyond what Cell Ranger needs).
+set -euo pipefail
+source config.sh
+OUT=$FETAL_ROOT/migliorini2024
+row=$(awk -F'\t' -v t="${SLURM_ARRAY_TASK_ID}" 'NR>1 && $1==t' configs/fetal_migliorini_samples.tsv)
+sample=$(cut -f2 <<<"$row"); runs=$(cut -f5 <<<"$row" | tr ',' ' ')
+fq="$OUT/fastq/$sample"; tmp="$OUT/tmp_fqd/$sample"; mkdir -p "$fq" "$tmp"
+lane=0
+for r in $runs; do
+  lane=$((lane + 1))
+  "$SRA_ENV/bin/fasterq-dump" "$OUT/sra/$r" --split-files --include-technical -e "$SLURM_CPUS_PER_TASK" -t "$tmp" -O "$tmp"
+  # reads in spot order: _1 = index (8 bp), _2 = barcode+UMI (28 bp), _3 = cDNA (91 bp); check lengths
+  for k in 1 2 3; do echo "$r read $k length: $(head -2 "$tmp/${r}_${k}.fastq" | tail -1 | tr -d '\n' | wc -c)"; done
+  for pair in "1 I1" "2 R1" "3 R2"; do
+    set -- $pair
+    pigz -p "$SLURM_CPUS_PER_TASK" -c "$tmp/${r}_$1.fastq" > "$fq/${sample}_S1_L00${lane}_$2_001.fastq.gz" 2>/dev/null \
+      || gzip -c "$tmp/${r}_$1.fastq" > "$fq/${sample}_S1_L00${lane}_$2_001.fastq.gz"
+    rm -f "$tmp/${r}_$1.fastq"
+  done
+  rm -rf "$OUT/sra/$r"
+done
+rm -rf "$tmp"; ls -la "$fq"

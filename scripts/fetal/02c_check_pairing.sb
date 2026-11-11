@@ -1,0 +1,50 @@
+#!/bin/bash
+#SBATCH --job-name=bc_pair
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --nodes=1
+#SBATCH --ntasks=8
+#SBATCH --time=02:00:00
+#SBATCH --output=logs/bc_pair.%j.out
+# Which hashtag (HTO) run belongs to which gene-expression (GEX) run?
+#
+# Cell Ranger refused pool4 with "Barcodes from the [Gene Expression] library and the
+# [Antibody Capture] library have insufficient overlap". Rather than bypass that check,
+# establish the true pairing empirically: two libraries made from the same GEM well share
+# their cell barcodes, so the correct GEX/HTO pair is the one with high overlap among
+# high-count barcodes. (Comparing *unique* barcode sets is useless -- those are dominated
+# by singleton sequencing errors.)
+# sbatch sets the cwd to the submit directory, so run this from the repo root
+set -euo pipefail
+set -a; source config.sh; set +a
+W="$FETAL_OUT/bc_check"; mkdir -p "$W"; cd "$FETAL_OUT/raw"
+
+HTO="SRR18080915 SRR18080916 SRR18080917 SRR18080918"
+GEX="SRR18080919 SRR18080920 SRR18080921 SRR18080922"
+N=${N:-20000000}   # lines of fastq to read per run (= N/4 reads)
+TOP=${TOP:-5000}   # barcodes kept per run
+
+for s in $HTO $GEX; do
+  ( zcat "$s/${s}_1.fastq.gz" | head -"$N" | awk 'NR%4==2{print substr($0,1,16)}' \
+      | sort | uniq -c | sort -rn | head -"$TOP" | awk '{print $2}' | sort > "$W/top_$s.txt" ) &
+done
+wait
+for s in $HTO $GEX; do
+  [[ -s "$W/top_$s.txt" ]] || { echo "FAILED to build $W/top_$s.txt" >&2; exit 1; }
+done
+
+echo "top-$TOP cell barcodes from $((N/4)) reads per run"
+echo
+echo "rows = GEX, cols = HTO ; % of GEX barcodes shared with HTO"
+printf "%-8s"; for h in $HTO; do printf "%9s" "${h#SRR180809}"; done; echo
+for g in $GEX; do
+  printf "%-8s" "${g#SRR180809}"
+  for h in $HTO; do
+    n=$(comm -12 "$W/top_$g.txt" "$W/top_$h.txt" | wc -l)
+    printf "%8.1f%%" "$(awk -v n="$n" -v t="$TOP" 'BEGIN{print n/t*100}')"
+  done
+  echo
+done
+echo
+echo "expected pairing from configs/fetal_olaniru_samples.tsv:"
+awk -F'\t' 'NR>1{printf "  %s  GEX %s  HTO %s\n", $2, $5, $6}' "$SLURM_SUBMIT_DIR/configs/fetal_olaniru_samples.tsv"

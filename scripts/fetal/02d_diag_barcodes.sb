@@ -1,0 +1,88 @@
+#!/bin/bash
+#SBATCH --job-name=bc_diag
+#SBATCH --partition=acpu
+#SBATCH --qos=cpu-normal
+#SBATCH --nodes=1
+#SBATCH --ntasks=8
+#SBATCH --time=01:00:00
+#SBATCH --output=logs/bc_diag.%j.out
+# Why did 02c report 0% GEX/HTO barcode overlap even for pool1, which Cell Ranger accepted?
+# Print the actual top barcodes and test the usual suspects: reverse complement, and whether the
+# barcodes are on the 10x v3 whitelist.
+#
+# NOTE: `zcat f | head -N` makes zcat die of SIGPIPE, which under `set -o pipefail` aborts the
+# script (this is what killed the first version of this job, and what silently truncated some of
+# 02c's barcode lists inside its backgrounded subshells). Read a bounded number of records with
+# awk's own exit instead, and keep pipefail off for the extraction.
+set -euo pipefail
+set -a; source config.sh; set +a
+W="$FETAL_OUT/bc_check"; mkdir -p "$W"; cd "$FETAL_OUT/raw"
+NREADS=${NREADS:-2000000}
+TOP=${TOP:-5000}
+
+# top cell barcodes of a run -> stdout, sorted. No SIGPIPE: awk stops reading by itself.
+topbc() {
+  local s=$1
+  set +o pipefail
+  zcat "$s/${s}_1.fastq.gz" 2>/dev/null \
+    | awk -v n="$NREADS" 'NR%4==2{print substr($0,1,16); c++; if(c>=n) exit}' \
+    | sort | uniq -c | sort -rn | head -"$TOP" | awk '{print $2}' | sort
+  set -o pipefail
+}
+
+echo "=== top 5 barcodes per run, from $NREADS reads ==="
+for s in SRR18080918 SRR18080922 SRR18080915 SRR18080919; do
+  echo "--- $s"
+  set +o pipefail
+  zcat "$s/${s}_1.fastq.gz" 2>/dev/null \
+    | awk -v n="$NREADS" 'NR%4==2{print substr($0,1,16); c++; if(c>=n) exit}' \
+    | sort | uniq -c | sort -rn | head -5
+  set -o pipefail
+done
+
+echo
+echo "=== building top-$TOP lists for all 8 runs ==="
+for s in SRR18080915 SRR18080916 SRR18080917 SRR18080918 SRR18080919 SRR18080920 SRR18080921 SRR18080922; do
+  topbc "$s" > "$W/t_$s.txt"
+  printf "  %s %6s barcodes\n" "$s" "$(wc -l < "$W/t_$s.txt")"
+done
+
+echo
+echo "=== pool1 (GEX 922 vs HTO 918): forward vs reverse-complement ==="
+rev < "$W/t_SRR18080918.txt" | tr ACGT TGCA | sort > "$W/t_918_rc.txt"
+printf "  forward : %s / %s\n" "$(comm -12 "$W/t_SRR18080922.txt" "$W/t_SRR18080918.txt" | wc -l)" "$TOP"
+printf "  revcomp : %s / %s\n" "$(comm -12 "$W/t_SRR18080922.txt" "$W/t_918_rc.txt"       | wc -l)" "$TOP"
+
+echo
+echo "=== on the 10x 3' v3 whitelist? ==="
+CRDIR=$(dirname "$CELLRANGER")
+WL=$(find "$CRDIR" -name "3M-february-2018.txt*" 2>/dev/null | head -1)
+echo "  whitelist: ${WL:-NOT FOUND}"
+if [[ -n "${WL:-}" ]]; then
+  set +o pipefail
+  { [[ "$WL" == *.gz ]] && zcat "$WL" || cat "$WL"; } | cut -f1 | sort > "$W/wl.txt"
+  set -o pipefail
+  for s in SRR18080922 SRR18080918 SRR18080919 SRR18080915; do
+    printf "  %-12s on-whitelist: %5s / %s\n" "$s" "$(comm -12 "$W/t_$s.txt" "$W/wl.txt" | wc -l)" "$TOP"
+  done
+  printf "  %-12s on-whitelist: %5s / %s\n" "918-revcomp" "$(comm -12 "$W/t_918_rc.txt" "$W/wl.txt" | wc -l)" "$TOP"
+fi
+
+echo
+echo "=== full overlap matrix (rows GEX, cols HTO) ==="
+printf "%-8s"; for h in 915 916 917 918; do printf "%9s" "$h"; done; echo
+for g in 919 920 921 922; do
+  printf "%-8s" "$g"
+  for h in 915 916 917 918; do
+    n=$(comm -12 "$W/t_SRR180809$g.txt" "$W/t_SRR180809$h.txt" | wc -l)
+    printf "%8.1f%%" "$(awk -v n="$n" -v t="$TOP" 'BEGIN{print n/t*100}')"
+  done
+  echo
+done
+
+echo
+echo "=== Cell Ranger metrics for pools that have finished ==="
+for p in pool1 pool2 pool3; do
+  f="$FETAL_OUT/cellranger/$p/outs/metrics_summary.csv"
+  if [[ -f "$f" ]]; then echo "--- $p"; head -2 "$f"; else echo "--- $p (no metrics yet)"; fi
+done
